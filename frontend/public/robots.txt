@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /accounts/
+Disallow: /accounting/
+Disallow: /admin/
+
+Sitemap: https://invesment.top/sitemap.xml

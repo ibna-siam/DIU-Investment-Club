@@ -58,9 +58,10 @@ import { errorHandler } from './middleware/error.middleware';
 
 // Approved static production & development origins
 const STATIC_ALLOWED_ORIGINS = new Set([
-  'https://investmentclub.top',
-  'https://www.investmentclub.top',
+  'https://invesment.top',
+  'https://www.invesment.top',
   'https://diu-investment-club.vercel.app',
+  'https://diu-investment-club-nine.vercel.app',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
 ]);

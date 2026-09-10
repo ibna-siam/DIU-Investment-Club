@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 import { supabaseAdmin, isSupabaseConfigured } from '../../config/supabase';
 import { emailEventBus } from '../email/email.events';
 import { auditLogsRepository } from '../audit-logs/audit-logs.repository';
-import { env } from '../../config/env';
+import { env, getPrimaryClientUrl } from '../../config/env';
 
 const createUserSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -114,14 +114,15 @@ export class UsersController {
       }
 
       // Generate secure setup URL via Supabase Auth or secure token
-      let setupUrl = `${env.CLIENT_URL}/reset-password?setup=true&email=${encodeURIComponent(normalizedEmail)}`;
+      const clientBase = getPrimaryClientUrl();
+      let setupUrl = `${clientBase}/reset-password?setup=true&email=${encodeURIComponent(normalizedEmail)}`;
       if (isSupabaseConfigured() && supabaseAdmin) {
         try {
           const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
             type: 'invite',
             email: normalizedEmail,
             options: {
-              redirectTo: `${env.CLIENT_URL}/reset-password?setup=true`,
+              redirectTo: `${clientBase}/reset-password?setup=true`,
             },
           });
           if (linkData?.properties?.action_link) {
@@ -136,7 +137,7 @@ export class UsersController {
           env.JWT_SECRET,
           { expiresIn: '48h' }
         );
-        setupUrl = `${env.CLIENT_URL}/reset-password?token=${inviteToken}&setup=true`;
+        setupUrl = `${clientBase}/reset-password?token=${inviteToken}&setup=true`;
       }
 
       // 1. Emit domain event for asynchronous Welcome Email
@@ -146,7 +147,7 @@ export class UsersController {
           userId: user.id,
           email: normalizedEmail,
           fullName: user.full_name,
-          loginUrl: `${env.CLIENT_URL}/login`,
+          loginUrl: `${clientBase}/login`,
           createdBy: req.user?.id,
         },
       });

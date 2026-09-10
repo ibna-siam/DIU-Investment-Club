@@ -2,8 +2,8 @@
  * DIU Investment Club - Single Resend Email Provider
  *
  * Implements IEmailProvider using the official Resend SDK.
- * Production Domain: investmentclub.top
- * Sender: DIU Investment Club <noreply@investmentclub.top>
+ * Production Domain: invesment.top
+ * Sender: DIU Investment Club <noreply@invesment.top>
  *
  * Exclusively provides email delivery for the entire ERP system:
  * - Zero SMTP / Nodemailer code or fallbacks

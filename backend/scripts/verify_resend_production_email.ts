@@ -3,7 +3,7 @@
  *
  * Comprehensive audit & verification of the production email system:
  * 1. Resend client authenticates successfully
- * 2. Verified sender domain (noreply@investmentclub.top) is used
+ * 2. Verified sender domain (noreply@invesment.top) is used
  * 3. New Member Welcome Email goes only to member.email
  * 4. New Member does NOT receive account activation link
  * 5. New System User receives Welcome Email
@@ -71,17 +71,17 @@ async function runVerification() {
   );
 
   // --------------------------------------------------------------------
-  // TEST 2: Verified Sender Domain (investmentclub.top)
+  // TEST 2: Verified Sender Domain (invesment.top)
   // --------------------------------------------------------------------
   console.log('\n--- TEST 2: Verified Sender Domain Configuration ---');
   const fromEmail = DEFAULT_FROM_EMAIL;
   const isVerifiedDomain =
-    fromEmail.includes('investmentclub.top') &&
-    fromEmail.includes('noreply@investmentclub.top') &&
+    fromEmail.includes('invesment.top') &&
+    fromEmail.includes('noreply@invesment.top') &&
     fromEmail.includes('DIU Investment Club');
   assert(
     isVerifiedDomain,
-    'Verified Domain Sender Identity (noreply@investmentclub.top)',
+    'Verified Domain Sender Identity (noreply@invesment.top)',
     `Configured Sender: "${fromEmail}"`
   );
   assert(

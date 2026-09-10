@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { env } from '../../config/env';
+import { env, getPrimaryClientUrl } from '../../config/env';
 import { supabaseAdmin, supabaseClient, isSupabaseConfigured, getDbAdmin } from '../../config/supabase';
 import { usersRepository } from '../users/users.repository';
 import { rolesRepository } from '../roles/roles.repository';
@@ -163,7 +163,8 @@ export class AuthController {
 
       const user = await usersRepository.findByEmail(normalizedEmail);
       if (user) {
-        let resetUrl = `${env.CLIENT_URL}/reset-password`;
+        const clientBase = getPrimaryClientUrl();
+        let resetUrl = `${clientBase}/reset-password`;
 
         if (isSupabaseConfigured() && supabaseAdmin) {
           try {
@@ -171,7 +172,7 @@ export class AuthController {
               type: 'recovery',
               email: normalizedEmail,
               options: {
-                redirectTo: `${env.CLIENT_URL}/reset-password`,
+                redirectTo: `${clientBase}/reset-password`,
               },
             });
             if (linkData?.properties?.action_link) {
@@ -187,7 +188,7 @@ export class AuthController {
             env.JWT_SECRET,
             { expiresIn: '30m' }
           );
-          resetUrl = `${env.CLIENT_URL}/reset-password?token=${token}`;
+          resetUrl = `${clientBase}/reset-password?token=${token}`;
         }
 
         // Emit domain event for asynchronous password reset email
@@ -309,7 +310,8 @@ export class AuthController {
       }
 
       const user = req.user;
-      let verificationUrl = `${env.CLIENT_URL}/verify-email`;
+      const clientBase = getPrimaryClientUrl();
+      let verificationUrl = `${clientBase}/verify-email`;
 
       if (isSupabaseConfigured() && supabaseAdmin) {
         try {
@@ -317,7 +319,7 @@ export class AuthController {
             type: 'signup',
             email: user.email,
             password: 'TempPassword@123',
-            options: { redirectTo: `${env.CLIENT_URL}/verify-email` },
+            options: { redirectTo: `${clientBase}/verify-email` },
           });
           if (linkData?.properties?.action_link) {
             verificationUrl = linkData.properties.action_link;
@@ -329,7 +331,7 @@ export class AuthController {
           env.JWT_SECRET,
           { expiresIn: '60m' }
         );
-        verificationUrl = `${env.CLIENT_URL}/verify-email?token=${token}`;
+        verificationUrl = `${clientBase}/verify-email?token=${token}`;
       }
 
       emailEventBus.emitEvent({

@@ -16,7 +16,7 @@ const envSchema = z
     DATABASE_URL: z.string().optional(),
     JWT_SECRET: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
-    RESEND_FROM_EMAIL: z.string().default('DIU Investment Club <noreply@investmentclub.top>'),
+    RESEND_FROM_EMAIL: z.string().default('DIU Investment Club <noreply@invesment.top>'),
     RESEND_TEST_RECIPIENT: z.string().optional().default('siamibna75@gmail.com'),
     ADMIN_EMAIL: z.string().optional().default('admin@diu.edu.bd'),
     EMAIL_PROVIDER: z.string().optional().default('resend').transform((v) => (v || 'resend').trim().toLowerCase()),
@@ -60,3 +60,13 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+/**
+ * Returns the primary frontend URL, safely extracting the first URL if CLIENT_URL
+ * contains a comma-separated list of allowed origins. Strips trailing slashes.
+ */
+export const getPrimaryClientUrl = (): string => {
+  if (!env.CLIENT_URL) return 'http://localhost:3000';
+  const first = env.CLIENT_URL.split(',')[0].trim();
+  return first.replace(/\/+$/, '') || 'http://localhost:3000';
+};

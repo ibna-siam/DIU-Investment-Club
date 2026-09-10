@@ -54,7 +54,7 @@ export const DEFAULT_EMAIL_BRAND: EmailBrandConfig = {
   // Official Contact & Socials
   supportEmail: 'investmentclub@diu.edu.bd',
   officialWebsite: 'https://daffodilvarsity.edu.bd',
-  portalUrl: process.env.CLIENT_URL || 'http://localhost:3000',
+  portalUrl: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0].trim().replace(/\/+$/, '') : 'http://localhost:3000',
   address: 'Daffodil Smart City, Birulia, Savar, Dhaka-1216, Bangladesh',
   officialCommLabel: 'Official club communication',
   footerNotice: 'This is an automated message. Please do not reply directly unless reply support is configured.',
