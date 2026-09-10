@@ -46,16 +46,40 @@ export const errorHandler = (
     return;
   }
 
-  const statusCode = err.statusCode || err.status || 500;
-  const message = err.message || 'Internal Server Error';
+  let statusCode = err.statusCode || err.status || 500;
+  let errorCode = err.code || 'SERVER_ERROR';
+  let message = err.message || 'Internal Server Error';
+
+  // Handle Postgres constraint violations cleanly
+  if (err.code === '23505') {
+    statusCode = 409;
+    errorCode = 'CONFLICT';
+    message = 'A record with this identifier already exists.';
+  } else if (err.code === '23503') {
+    statusCode = 409;
+    errorCode = 'DEPENDENCY_CONFLICT';
+    message = 'Operation cannot be completed because related records depend on this resource.';
+  }
+
+  // Map known status codes to clean codes
+  if (statusCode === 401 && errorCode === 'SERVER_ERROR') errorCode = 'UNAUTHORIZED';
+  if (statusCode === 403 && errorCode === 'SERVER_ERROR') errorCode = 'FORBIDDEN';
+  if (statusCode === 404 && errorCode === 'SERVER_ERROR') errorCode = 'NOT_FOUND';
+  if (statusCode === 409 && errorCode === 'SERVER_ERROR') errorCode = 'CONFLICT';
+  if (statusCode === 422 && errorCode === 'SERVER_ERROR') errorCode = 'UNPROCESSABLE_ENTITY';
+  if ([502, 503, 504].includes(statusCode) && errorCode === 'SERVER_ERROR') errorCode = 'SERVICE_UNAVAILABLE';
+
+  // Clean production message for 500 errors to avoid leaking database internals or secrets
+  const cleanMessage =
+    process.env.NODE_ENV === 'production' && statusCode >= 500
+      ? 'An unexpected error occurred. Please try again later.'
+      : message;
 
   res.status(statusCode).json({
     success: false,
     error: {
-      code: err.code || 'SERVER_ERROR',
-      message: process.env.NODE_ENV === 'production' && statusCode === 500
-        ? 'An unexpected error occurred. Please try again later.'
-        : message,
+      code: errorCode,
+      message: cleanMessage,
     },
   });
 };

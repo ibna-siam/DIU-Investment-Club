@@ -6,6 +6,19 @@ import { eventTeamRepository } from '../event-team/event-team.repository';
 import { emailEventBus } from '../email/email.events';
 
 export class EventsController {
+  constructor() {
+    this.list = this.list.bind(this);
+    this.getById = this.getById.bind(this);
+    this.getBySlug = this.getBySlug.bind(this);
+    this.create = this.create.bind(this);
+    this.update = this.update.bind(this);
+    this.updateStatus = this.updateStatus.bind(this);
+    this.close = this.close.bind(this);
+    this.reopen = this.reopen.bind(this);
+    this.delete = this.delete.bind(this);
+    this.canManageEvent = this.canManageEvent.bind(this);
+  }
+
   private async canManageEvent(userId: string, userRoles?: any[], eventId?: string, event?: any): Promise<boolean> {
     const roleList = (userRoles || []).map((r: any) =>
       (typeof r === 'string' ? r : r?.name || r?.slug || '').toUpperCase()

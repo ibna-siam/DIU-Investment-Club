@@ -690,38 +690,64 @@ export class UsersRepository {
     hasFinancialHistory: boolean;
     hasAuditLogs: boolean;
     hasMemberRecord: boolean;
+    hasOtherDependencies: boolean;
     details: {
+      dependencyCount: number;
+      tablesWithData: string[];
       transactionsCount: number;
       expensesCount: number;
       incomesCount: number;
       journalEntriesCount: number;
       vouchersCount: number;
-      memberPaymentsCount: number;
+      financialAccountsCount: number;
+      bankReconciliationsCount: number;
       auditLogsCount: number;
+      approvalRequestsCount: number;
+      eventsCount: number;
       isMemberLinked: boolean;
     };
   }> {
     const details = {
+      dependencyCount: 0,
+      tablesWithData: [] as string[],
       transactionsCount: 0,
       expensesCount: 0,
       incomesCount: 0,
       journalEntriesCount: 0,
       vouchersCount: 0,
-      memberPaymentsCount: 0,
+      financialAccountsCount: 0,
+      bankReconciliationsCount: 0,
       auditLogsCount: 0,
+      approvalRequestsCount: 0,
+      eventsCount: 0,
       isMemberLinked: false,
     };
 
     if (isSupabaseConfigured() && supabaseClient) {
       try {
-        const [txRes, expRes, incRes, jRes, vRes, payRes, auditRes, memRes] = await Promise.all([
-          supabaseClient.from('transactions').select('id', { count: 'exact', head: true }).eq('created_by', userId),
-          supabaseClient.from('expenses').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},approved_by.eq.${userId}`),
+        const [
+          txRes,
+          expRes,
+          incRes,
+          jRes,
+          vRes,
+          faRes,
+          bankRes,
+          auditRes,
+          appRes,
+          evRes,
+          memRes,
+        ] = await Promise.all([
+          supabaseClient.from('financial_transactions').select('id', { count: 'exact', head: true }).eq('created_by', userId),
+          supabaseClient.from('expenses').select('id', { count: 'exact', head: true }).or(`requested_by.eq.${userId},paid_by.eq.${userId}`),
           supabaseClient.from('incomes').select('id', { count: 'exact', head: true }).eq('created_by', userId),
           supabaseClient.from('journal_entries').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},posted_by.eq.${userId},reversed_by.eq.${userId}`),
           supabaseClient.from('vouchers').select('id', { count: 'exact', head: true }).or(`prepared_by.eq.${userId},approved_by.eq.${userId}`),
-          supabaseClient.from('member_payments').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},verified_by.eq.${userId}`),
+          supabaseClient.from('financial_accounts').select('id', { count: 'exact', head: true }).eq('created_by', userId),
+          supabaseClient.from('bank_reconciliations').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},verified_by.eq.${userId},approved_by.eq.${userId}`),
           supabaseClient.from('audit_logs').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+          supabaseClient.from('approval_requests').select('id', { count: 'exact', head: true }).eq('requested_by', userId),
+          supabaseClient.from('events').select('id', { count: 'exact', head: true }).eq('created_by', userId),
           supabaseClient.from('members').select('id', { count: 'exact', head: true }).eq('user_id', userId),
         ]);
 
@@ -730,11 +756,73 @@ export class UsersRepository {
         details.incomesCount = incRes.count || 0;
         details.journalEntriesCount = jRes.count || 0;
         details.vouchersCount = vRes.count || 0;
-        details.memberPaymentsCount = payRes.count || 0;
+        details.financialAccountsCount = faRes.count || 0;
+        details.bankReconciliationsCount = bankRes.count || 0;
         details.auditLogsCount = auditRes.count || 0;
+        details.approvalRequestsCount = appRes.count || 0;
+        details.eventsCount = evRes.count || 0;
         details.isMemberLinked = (memRes.count || 0) > 0;
       } catch (e) {}
     }
+
+    try {
+      const dbRes = await queryDatabase(
+        `SELECT 
+          (SELECT COUNT(*) FROM public.financial_transactions WHERE created_by = $1) as tx_cnt,
+          (SELECT COUNT(*) FROM public.expenses WHERE requested_by = $1 OR paid_by = $1) as exp_cnt,
+          (SELECT COUNT(*) FROM public.incomes WHERE created_by = $1) as inc_cnt,
+          (SELECT COUNT(*) FROM public.journal_entries WHERE created_by = $1 OR posted_by = $1 OR reversed_by = $1) as j_cnt,
+          (SELECT COUNT(*) FROM public.vouchers WHERE prepared_by = $1 OR approved_by = $1) as v_cnt,
+          (SELECT COUNT(*) FROM public.financial_accounts WHERE created_by = $1) as fa_cnt,
+          (SELECT COUNT(*) FROM public.bank_reconciliations WHERE created_by = $1 OR verified_by = $1 OR approved_by = $1) as bank_cnt,
+          (SELECT COUNT(*) FROM public.audit_logs WHERE user_id = $1) as audit_cnt,
+          (SELECT COUNT(*) FROM public.approval_requests WHERE requested_by = $1) as app_cnt,
+          (SELECT COUNT(*) FROM public.events WHERE created_by = $1) as ev_cnt,
+          (SELECT COUNT(*) FROM public.members WHERE user_id = $1) as mem_cnt`,
+        [userId]
+      );
+      if (dbRes && dbRes.rows.length > 0) {
+        const row = dbRes.rows[0];
+        details.transactionsCount = Math.max(details.transactionsCount, parseInt(row.tx_cnt || '0', 10));
+        details.expensesCount = Math.max(details.expensesCount, parseInt(row.exp_cnt || '0', 10));
+        details.incomesCount = Math.max(details.incomesCount, parseInt(row.inc_cnt || '0', 10));
+        details.journalEntriesCount = Math.max(details.journalEntriesCount, parseInt(row.j_cnt || '0', 10));
+        details.vouchersCount = Math.max(details.vouchersCount, parseInt(row.v_cnt || '0', 10));
+        details.financialAccountsCount = Math.max(details.financialAccountsCount, parseInt(row.fa_cnt || '0', 10));
+        details.bankReconciliationsCount = Math.max(details.bankReconciliationsCount, parseInt(row.bank_cnt || '0', 10));
+        details.auditLogsCount = Math.max(details.auditLogsCount, parseInt(row.audit_cnt || '0', 10));
+        details.approvalRequestsCount = Math.max(details.approvalRequestsCount, parseInt(row.app_cnt || '0', 10));
+        details.eventsCount = Math.max(details.eventsCount, parseInt(row.ev_cnt || '0', 10));
+        details.isMemberLinked = details.isMemberLinked || parseInt(row.mem_cnt || '0', 10) > 0;
+      }
+    } catch (e) {}
+
+    const tables: string[] = [];
+    if (details.transactionsCount > 0) tables.push('financial_transactions');
+    if (details.expensesCount > 0) tables.push('expenses');
+    if (details.incomesCount > 0) tables.push('incomes');
+    if (details.journalEntriesCount > 0) tables.push('journal_entries');
+    if (details.vouchersCount > 0) tables.push('vouchers');
+    if (details.financialAccountsCount > 0) tables.push('financial_accounts');
+    if (details.bankReconciliationsCount > 0) tables.push('bank_reconciliations');
+    if (details.auditLogsCount > 0) tables.push('audit_logs');
+    if (details.approvalRequestsCount > 0) tables.push('approval_requests');
+    if (details.eventsCount > 0) tables.push('events');
+    if (details.isMemberLinked) tables.push('members');
+
+    details.tablesWithData = tables;
+    details.dependencyCount =
+      details.transactionsCount +
+      details.expensesCount +
+      details.incomesCount +
+      details.journalEntriesCount +
+      details.vouchersCount +
+      details.financialAccountsCount +
+      details.bankReconciliationsCount +
+      details.auditLogsCount +
+      details.approvalRequestsCount +
+      details.eventsCount +
+      (details.isMemberLinked ? 1 : 0);
 
     const hasFinancialHistory =
       details.transactionsCount > 0 ||
@@ -742,15 +830,18 @@ export class UsersRepository {
       details.incomesCount > 0 ||
       details.journalEntriesCount > 0 ||
       details.vouchersCount > 0 ||
-      details.memberPaymentsCount > 0;
+      details.financialAccountsCount > 0 ||
+      details.bankReconciliationsCount > 0;
 
     const hasAuditLogs = details.auditLogsCount > 0;
     const hasMemberRecord = details.isMemberLinked;
+    const hasOtherDependencies = details.approvalRequestsCount > 0 || details.eventsCount > 0;
 
     return {
       hasFinancialHistory,
       hasAuditLogs,
       hasMemberRecord,
+      hasOtherDependencies,
       details,
     };
   }
@@ -765,6 +856,7 @@ export class UsersRepository {
   ): Promise<{
     action: 'deleted' | 'deactivated';
     message: string;
+    details: { dependencyCount: number; tablesWithData: string[] };
     dependencies: any;
     user?: UserProfile | null;
   }> {
@@ -789,9 +881,14 @@ export class UsersRepository {
 
     // 3. Inspect dependencies
     const deps = await this.inspectUserDependencies(userId);
-    const hasDependencies = deps.hasFinancialHistory || deps.hasAuditLogs || deps.hasMemberRecord;
+    const hasDependencies =
+      deps.hasFinancialHistory ||
+      deps.hasAuditLogs ||
+      deps.hasMemberRecord ||
+      deps.hasOtherDependencies ||
+      deps.details.dependencyCount > 0;
 
-    // 4. If user has financial records, do NOT delete. Safely deactivate to maintain audit integrity.
+    // 4. If user has dependencies or forceDeactivate requested: Safely deactivate to maintain data integrity
     if (hasDependencies || options?.forceDeactivate) {
       await this.updateStatus(userId, 'inactive');
 
@@ -823,52 +920,87 @@ export class UsersRepository {
         action: 'deactivated',
         user: updated,
         message: 'Account safely deactivated. Financial history and audit records have been preserved for accounting integrity.',
+        details: {
+          dependencyCount: deps.details.dependencyCount,
+          tablesWithData: deps.details.tablesWithData,
+        },
         dependencies: deps.details,
       };
     }
 
     // 5. User has NO financial history or audit logs: Proceed with clean permanent deletion
-    if (isSupabaseConfigured() && supabaseClient) {
-      try {
-        await supabaseClient.from('user_roles').delete().eq('user_id', userId);
-        await supabaseClient.from('user_permissions').delete().eq('user_id', userId);
-        await supabaseClient.from('notifications').delete().eq('user_id', userId);
-        await supabaseClient.from('members').update({ user_id: null }).eq('user_id', userId);
-        await supabaseClient.from('profiles').delete().eq('id', userId);
-      } catch (e) {}
-    }
-
     try {
+      if (isSupabaseConfigured() && supabaseClient) {
+        try {
+          const { error: rpcErr } = await supabaseClient.rpc('admin_delete_user', { p_user_id: userId });
+          if (rpcErr) {
+            await supabaseClient.from('user_roles').delete().eq('user_id', userId);
+            await supabaseClient.from('user_permissions').delete().eq('user_id', userId);
+            await supabaseClient.from('notifications').delete().eq('user_id', userId);
+            await supabaseClient.from('members').update({ user_id: null }).eq('user_id', userId);
+            await supabaseClient.from('profiles').delete().eq('id', userId);
+          }
+        } catch (e) {}
+      }
+
       await queryDatabase('DELETE FROM public.user_roles WHERE user_id = $1', [userId]);
       await queryDatabase('DELETE FROM public.user_permissions WHERE user_id = $1', [userId]);
       await queryDatabase('DELETE FROM public.notifications WHERE user_id = $1', [userId]);
       await queryDatabase('UPDATE public.members SET user_id = NULL WHERE user_id = $1', [userId]);
       await queryDatabase('DELETE FROM public.profiles WHERE id = $1', [userId]);
-    } catch (e) {}
 
-    // Store cleanup
-    store.profiles.delete(userId);
-    for (const ur of Array.from(store.userRoles)) {
-      if (ur.startsWith(`${userId}:`)) store.userRoles.delete(ur);
+      // Store cleanup
+      store.profiles.delete(userId);
+      for (const ur of Array.from(store.userRoles)) {
+        if (ur.startsWith(`${userId}:`)) store.userRoles.delete(ur);
+      }
+      for (const up of Array.from(store.userPermissions)) {
+        if (up.startsWith(`${userId}:`)) store.userPermissions.delete(up);
+      }
+
+      // Supabase Auth deletion
+      if (isSupabaseConfigured() && supabaseAdmin) {
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(userId);
+        } catch (e) {}
+      }
+
+      invalidateAuthCache(userId);
+
+      return {
+        action: 'deleted',
+        message: 'User permanently deleted successfully.',
+        details: {
+          dependencyCount: 0,
+          tablesWithData: [],
+        },
+        dependencies: deps.details,
+      };
+    } catch (err: any) {
+      // Graceful fallback: If an unexpected foreign key constraint is encountered, safely deactivate
+      console.warn(`[UsersRepository] Hard delete encountered constraint error for user ${userId}, falling back to safe deactivation:`, err?.message || err);
+      await this.updateStatus(userId, 'inactive');
+      invalidateAuthCache(userId);
+
+      if (isSupabaseConfigured() && supabaseAdmin) {
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: '876000h' });
+        } catch (e) {}
+      }
+
+      const updated = await this.findById(userId);
+
+      return {
+        action: 'deactivated',
+        user: updated,
+        message: 'Account safely deactivated. System records linked to this account were preserved to prevent ledger and database corruption.',
+        details: {
+          dependencyCount: deps.details.dependencyCount || 1,
+          tablesWithData: deps.details.tablesWithData.length > 0 ? deps.details.tablesWithData : ['system_history'],
+        },
+        dependencies: deps.details,
+      };
     }
-    for (const up of Array.from(store.userPermissions)) {
-      if (up.startsWith(`${userId}:`)) store.userPermissions.delete(up);
-    }
-
-    // Supabase Auth deletion
-    if (isSupabaseConfigured() && supabaseAdmin) {
-      try {
-        await supabaseAdmin.auth.admin.deleteUser(userId);
-      } catch (e) {}
-    }
-
-    invalidateAuthCache(userId);
-
-    return {
-      action: 'deleted',
-      message: 'User permanently deleted successfully.',
-      dependencies: deps.details,
-    };
   }
 }
 

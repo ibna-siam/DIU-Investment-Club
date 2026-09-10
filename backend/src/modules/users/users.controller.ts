@@ -488,7 +488,6 @@ export class UsersController {
   async deleteUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { forceDeactivateIfDependencies, reason } = req.body || {};
 
       if (!req.user?.id) {
         res.status(401).json({
@@ -498,10 +497,12 @@ export class UsersController {
         return;
       }
 
+      const { forceDeactivate, forceDeactivateIfDependencies, reason } = req.body || {};
+
       const result = await usersRepository.deleteUser(
         id,
         req.user,
-        { forceDeactivate: forceDeactivateIfDependencies !== false }
+        { forceDeactivate: forceDeactivate === true }
       );
 
       res.status(200).json({

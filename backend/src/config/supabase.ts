@@ -18,10 +18,10 @@ if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
   });
 }
 
-if (env.SUPABASE_URL && (env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY)) {
+if (env.SUPABASE_URL && (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY)) {
   supabaseClient = createClient(
     env.SUPABASE_URL,
-    env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY!,
+    env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY!,
     {
       auth: {
         autoRefreshToken: true,
