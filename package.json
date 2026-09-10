@@ -4,6 +4,8 @@
   "private": true,
   "description": "DIU Investment Club Financial Management and Accounting System",
   "scripts": {
+    "build": "cd backend && npm install && npm run build",
+    "start": "cd backend && npm start",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "build:backend": "cd backend && npm run build",
