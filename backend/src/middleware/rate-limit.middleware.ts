@@ -123,3 +123,13 @@ export const userInviteLimiter = rateLimiterManager.createMiddleware({
   message: 'Invitation rate limit reached. Please wait a few minutes before inviting more users.',
   code: 'INVITE_RATE_LIMIT',
 });
+
+// 4. Public Digital Receipts: max 60 requests per 15 minutes per IP
+export const publicReceiptLimiter = rateLimiterManager.createMiddleware({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  keyGenerator: (req: Request) => req.ip || req.socket.remoteAddress || '127.0.0.1',
+  message: 'Too many receipt access attempts. Please wait a few minutes before trying again.',
+  code: 'RECEIPT_RATE_LIMIT',
+});
+

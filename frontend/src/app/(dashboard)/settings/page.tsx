@@ -27,6 +27,11 @@ import {
   ShieldCheck,
   Server,
   Layers,
+  Activity,
+  RefreshCw,
+  Database,
+  Cpu,
+  XCircle,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -35,7 +40,37 @@ export default function SettingsPage() {
   const isAdmin = hasRole('SUPER_ADMIN') || hasPermission('settings.manage');
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'profile' | 'general' | 'financial' | 'system' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'general' | 'financial' | 'system' | 'security' | 'diagnostics'>('profile');
+
+  // Diagnostics Query
+  const {
+    data: diagnosticsData,
+    isLoading: diagnosticsLoading,
+    isRefetching: diagnosticsRefetching,
+    refetch: refetchDiagnostics,
+  } = useQuery<{
+    success: boolean;
+    service: string;
+    timestamp: string;
+    uptimeSeconds: number;
+    responseTimeMs: number;
+    indicators: {
+      apiStatus: string;
+      databaseStatus: string;
+      emailStatus: string;
+      backgroundJobsStatus: string;
+    };
+    database: { status: string; latencyMs: number; provider: string };
+    emailSystem: { status: string; provider: string; sender: string; telemetry24h: { sentLast24h: number; failedLast24h: number; pendingLast24h: number } };
+    memory: { heapUsedMb: number; heapTotalMb: number; rssMb: number };
+    telemetry: { totalRecorded: number; countsByCategory: Record<string, number>; lastErrorAt: string | null };
+    recentErrors: Array<{ id: string; timestamp: string; method: string; path: string; statusCode: number; errorCode: string; message: string; ip: string }>;
+  }>({
+    queryKey: ['system-diagnostics'],
+    queryFn: () => api.get('/system/diagnostics'),
+    enabled: !!user && activeTab === 'diagnostics',
+    refetchInterval: activeTab === 'diagnostics' ? 10000 : false,
+  });
 
   // Profile Form State
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -211,6 +246,18 @@ export default function SettingsPage() {
             >
               <Shield className="h-4 w-4" />
               <span>Security & Access</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('diagnostics')}
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-t-lg text-xs font-semibold uppercase tracking-wider transition-colors ${
+                activeTab === 'diagnostics'
+                  ? 'border-b-2 border-emerald-500 bg-slate-900 text-emerald-400'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/50'
+              }`}
+            >
+              <Activity className="h-4 w-4" />
+              <span>System Diagnostics</span>
             </button>
           </>
         )}
@@ -667,6 +714,225 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+      )}
+
+      {/* Tab 6: System Diagnostics (Admin Only) */}
+      {activeTab === 'diagnostics' && isAdmin && (
+        <div className="space-y-6">
+          {/* Header & Refresh Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Activity className="h-5 w-5 text-emerald-400" />
+                <span>Live Production Health & Diagnostics</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Real-time status probes for Backend API, Supabase Database, Resend Email Delivery, and Background Jobs.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchDiagnostics()}
+                disabled={diagnosticsLoading || diagnosticsRefetching}
+                className="border-slate-700 bg-slate-800 text-xs font-semibold text-slate-200 hover:text-white gap-1.5"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${diagnosticsRefetching ? 'animate-spin text-emerald-400' : ''}`} />
+                <span>{diagnosticsRefetching ? 'Probing...' : 'Refresh Status'}</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* 4 Critical Status Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. API Health */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Backend API</span>
+                <Server className="h-4 w-4 text-slate-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2.5 w-2.5 rounded-full ${diagnosticsData?.indicators.apiStatus === 'OPERATIONAL' ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-rose-500 animate-pulse'}`} />
+                  <span className={`text-base font-bold ${diagnosticsData?.indicators.apiStatus === 'OPERATIONAL' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {diagnosticsData?.indicators.apiStatus || (diagnosticsLoading ? 'PROBING...' : 'API DOWN')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Uptime: {diagnosticsData?.uptimeSeconds ? `${Math.floor(diagnosticsData.uptimeSeconds / 60)}m ${diagnosticsData.uptimeSeconds % 60}s` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Database Connectivity */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Supabase DB</span>
+                <Database className="h-4 w-4 text-slate-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2.5 w-2.5 rounded-full ${diagnosticsData?.indicators.databaseStatus === 'OPERATIONAL' ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-rose-500 animate-pulse'}`} />
+                  <span className={`text-base font-bold ${diagnosticsData?.indicators.databaseStatus === 'OPERATIONAL' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {diagnosticsData?.indicators.databaseStatus || (diagnosticsLoading ? 'PROBING...' : 'DATABASE FAILURE')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Latency: {diagnosticsData?.database.latencyMs !== undefined ? `${diagnosticsData.database.latencyMs}ms` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Email Subsystem (Resend) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Email (Resend)</span>
+                <Mail className="h-4 w-4 text-slate-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2.5 w-2.5 rounded-full ${diagnosticsData?.indicators.emailStatus === 'HEALTHY' ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-rose-500 animate-pulse'}`} />
+                  <span className={`text-base font-bold ${diagnosticsData?.indicators.emailStatus === 'HEALTHY' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {diagnosticsData?.indicators.emailStatus || (diagnosticsLoading ? 'PROBING...' : 'EMAIL FAILURE')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  24h: {diagnosticsData?.emailSystem.telemetry24h.sentLast24h || 0} Sent • {diagnosticsData?.emailSystem.telemetry24h.failedLast24h || 0} Failed
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Background Schedulers */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Background Jobs</span>
+                <Clock className="h-4 w-4 text-slate-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2.5 w-2.5 rounded-full ${diagnosticsData?.indicators.backgroundJobsStatus === 'ACTIVE' ? 'bg-emerald-400 shadow-sm shadow-emerald-400' : 'bg-rose-500 animate-pulse'}`} />
+                  <span className={`text-base font-bold ${diagnosticsData?.indicators.backgroundJobsStatus === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {diagnosticsData?.indicators.backgroundJobsStatus || (diagnosticsLoading ? 'PROBING...' : 'BACKGROUND JOB FAILURE')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  AutomationScheduler Active
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Memory & Runtime Metrics */}
+          {diagnosticsData?.memory && (
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-white">
+                  <Cpu className="h-4 w-4 text-emerald-400" />
+                  <span>Node.js Process Memory & Performance</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                  <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block font-medium">Heap Used</span>
+                    <span className="text-base font-bold text-white font-mono mt-0.5 block">{diagnosticsData.memory.heapUsedMb} MB</span>
+                  </div>
+                  <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block font-medium">Heap Total</span>
+                    <span className="text-base font-bold text-white font-mono mt-0.5 block">{diagnosticsData.memory.heapTotalMb} MB</span>
+                  </div>
+                  <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block font-medium">Resident Memory (RSS)</span>
+                    <span className="text-base font-bold text-white font-mono mt-0.5 block">{diagnosticsData.memory.rssMb} MB</span>
+                  </div>
+                  <div className="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
+                    <span className="text-slate-400 block font-medium">Diagnostic Latency</span>
+                    <span className="text-base font-bold text-emerald-400 font-mono mt-0.5 block">{diagnosticsData.responseTimeMs} ms</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Structured Telemetry & Recent Error Logs */}
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-white">
+                  <AlertCircle className="h-4 w-4 text-emerald-400" />
+                  <span>Production Telemetry & Failure Traces (Redacted Safe)</span>
+                </CardTitle>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {diagnosticsData?.telemetry?.totalRecorded || 0} events captured
+                </span>
+              </div>
+              <CardDescription className="text-slate-400 text-xs">
+                Zero credentials exposed. Passwords, JWT secrets, and bearer tokens are automatically stripped.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Category Breakdown Badges */}
+              {diagnosticsData?.telemetry?.countsByCategory && (
+                <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-slate-800">
+                  {Object.entries(diagnosticsData.telemetry.countsByCategory).map(([cat, count]) => (
+                    <span
+                      key={cat}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg font-mono font-semibold border ${
+                        Number(count) > 0
+                          ? 'bg-rose-950/40 border-rose-800/50 text-rose-300'
+                          : 'bg-slate-800/60 border-slate-700/60 text-slate-400'
+                      }`}
+                    >
+                      {cat}: {String(count)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Recent Error Table */}
+              {diagnosticsData?.recentErrors && diagnosticsData.recentErrors.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                        <th className="pb-2">Timestamp</th>
+                        <th className="pb-2">Method</th>
+                        <th className="pb-2">Endpoint</th>
+                        <th className="pb-2">Status</th>
+                        <th className="pb-2">Code</th>
+                        <th className="pb-2">Message</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {diagnosticsData.recentErrors.map((err) => (
+                        <tr key={err.id} className="hover:bg-slate-800/30">
+                          <td className="py-2 text-slate-400 whitespace-nowrap">
+                            {new Date(err.timestamp).toLocaleTimeString()}
+                          </td>
+                          <td className="py-2 text-slate-300 font-bold">{err.method}</td>
+                          <td className="py-2 text-slate-300 max-w-xs truncate">{err.path}</td>
+                          <td className="py-2">
+                            <span className="px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-800/40 font-bold">
+                              {err.statusCode}
+                            </span>
+                          </td>
+                          <td className="py-2 text-slate-400">{err.errorCode}</td>
+                          <td className="py-2 text-slate-400 max-w-sm truncate">{err.message}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-slate-500 text-xs">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500/50 mx-auto mb-2" />
+                  <p>No recent production failure events recorded. System health is pristine.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

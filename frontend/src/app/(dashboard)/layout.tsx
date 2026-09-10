@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { Sidebar } from '../../components/layout/Sidebar';
@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  const toggleCollapsed = () => {
+  const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
       const next = !prev;
       if (typeof window !== 'undefined') {
@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
       return next;
     });
-  };
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {

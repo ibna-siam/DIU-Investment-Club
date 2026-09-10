@@ -27,6 +27,7 @@ export interface PaymentConfirmedEvent {
   paymentMethod: string;
   paymentDate: string;
   referenceNumber?: string;
+  receiptToken?: string;
   verifiedBy?: string;
 }
 

@@ -17,7 +17,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
+function SidebarComponent({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { hasRole, hasPermission } = useAuth();
 
@@ -99,7 +99,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'hidden md:flex flex-col border-r border-slate-800 bg-slate-950 text-slate-200 transition-all duration-300 select-none z-30',
+        'hidden md:flex flex-col border-r border-slate-800 bg-slate-950 text-slate-200 transition-[width] duration-200 ease-in-out select-none z-30',
         collapsed ? 'w-20' : 'w-72'
       )}
     >
@@ -125,7 +125,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
         <button
           onClick={onToggleCollapse}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
           title={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -165,19 +165,14 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                     {!collapsed && <span>{item.title}</span>}
                   </div>
                   {!collapsed && (
-                    <span className="transition-transform duration-200">
+                    <span className="transition-transform duration-150">
                       {isGroupOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </span>
                   )}
                 </button>
 
-                {!collapsed && (
-                  <div
-                    className={cn(
-                      'overflow-hidden transition-all duration-200 ease-in-out pl-6 space-y-1',
-                      isGroupOpen ? 'max-h-[600px] opacity-100 py-1' : 'max-h-0 opacity-0 pointer-events-none'
-                    )}
-                  >
+                {!collapsed && isGroupOpen && (
+                  <div className="pl-6 space-y-1 py-1 animate-in fade-in-50 duration-150">
                     {item.children.map((child) => {
                       const isChildActive =
                         pathname === child.href ||
@@ -213,7 +208,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               key={item.title}
               href={item.href}
               className={cn(
-                'flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                'flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150',
                 isActive
                   ? 'bg-emerald-600 text-white font-semibold shadow-sm shadow-emerald-950 ring-1 ring-emerald-400/30'
                   : 'text-slate-300 hover:bg-slate-900 hover:text-white',
@@ -248,3 +243,5 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
     </aside>
   );
 }
+
+export const Sidebar = React.memo(SidebarComponent);

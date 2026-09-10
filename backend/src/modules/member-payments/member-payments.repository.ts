@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { supabaseClient, isSupabaseConfigured } from '../../config/supabase';
 import { MemberPayment, PaymentMethodType } from '../../types';
 
@@ -117,6 +118,32 @@ export class MemberPaymentsRepository {
     return null;
   }
 
+  async findByReceiptToken(receiptToken: string): Promise<MemberPayment | null> {
+    if (isSupabaseConfigured() && supabaseClient) {
+      const { data, error } = await supabaseClient
+        .from('member_payments')
+        .select(`
+          *,
+          member:members(id, member_code, full_name, student_id, email, phone, department, batch),
+          due:member_dues(id, due_number, title, amount, remaining_amount, due_type),
+          account:financial_accounts(id, name, account_type),
+          verifier:profiles!member_payments_verified_by_fkey(full_name)
+        `)
+        .eq('receipt_token', receiptToken)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!data) return null;
+
+      return {
+        ...data,
+        account_name: data.account?.name,
+        verifier_name: data.verifier?.full_name,
+      } as MemberPayment;
+    }
+    return null;
+  }
+
   async create(data: {
     member_id: string;
     due_id?: string;
@@ -161,6 +188,7 @@ export class MemberPaymentsRepository {
           payment_date: data.payment_date || new Date().toISOString().split('T')[0],
           reference_number: data.reference_number || null,
           transaction_reference: data.transaction_reference || null,
+          receipt_token: crypto.randomBytes(32).toString('hex'),
           status: 'PENDING',
           created_by: data.created_by || null,
         })

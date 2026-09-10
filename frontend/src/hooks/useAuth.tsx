@@ -148,18 +148,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
+  // Pre-computed O(1) permission cache for instantaneous UI checks without repeated string parsing
+  const { permissionSet, hasSuperAdmin, modulePrefixes } = useMemo(() => {
+    const set = new Set<string>();
+    const prefixes = new Set<string>();
+    const isSuper = user?.roles?.some((r) => r.slug === 'SUPER_ADMIN') ?? false;
+
+    if (user?.permissions) {
+      for (const p of user.permissions) {
+        set.add(p);
+        const dotIdx = p.indexOf('.');
+        if (dotIdx > 0) {
+          prefixes.add(p.substring(0, dotIdx));
+        }
+      }
+    }
+
+    return { permissionSet: set, hasSuperAdmin: isSuper, modulePrefixes: prefixes };
+  }, [user]);
+
   const hasRole = useCallback((roles: string | string[]): boolean => {
     if (!user || !user.roles) return false;
+    if (hasSuperAdmin) return true;
     const targetRoles = Array.isArray(roles) ? roles : [roles];
-    if (user.roles.some((r) => r.slug === 'SUPER_ADMIN')) return true;
     return user.roles.some((r) => targetRoles.includes(r.slug));
-  }, [user]);
+  }, [user, hasSuperAdmin]);
 
   const hasPermission = useCallback((permission: string): boolean => {
     if (!user) return false;
-    if (user.roles?.some((r) => r.slug === 'SUPER_ADMIN')) return true;
-    const perms = user.permissions || [];
-    if (perms.includes('*') || perms.includes(permission)) return true;
+    if (hasSuperAdmin) return true;
+    if (permissionSet.has('*') || permissionSet.has(permission)) return true;
 
     const parts = permission.split('.');
     const module = parts[0];
@@ -168,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!module) return false;
 
     // Check direct module manage/admin wildcard
-    if (perms.includes(`${module}.manage`) || perms.includes(`${module}.admin`)) return true;
+    if (permissionSet.has(`${module}.manage`) || permissionSet.has(`${module}.admin`)) return true;
 
     // Module alias / plural / singular normalization
     const alternates: string[] = [];
@@ -185,17 +203,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     for (const alt of alternates) {
-      if (action && perms.includes(`${alt}.${action}`)) return true;
-      if (perms.includes(`${alt}.manage`) || perms.includes(`${alt}.admin`)) return true;
-      // If permission is just a module check (no action specified)
-      if (!action && perms.some((p) => p.startsWith(`${alt}.`))) return true;
+      if (action && permissionSet.has(`${alt}.${action}`)) return true;
+      if (permissionSet.has(`${alt}.manage`) || permissionSet.has(`${alt}.admin`)) return true;
+      if (!action && modulePrefixes.has(alt)) return true;
     }
 
-    // If permission has no action and user has any perm in this module
-    if (!action && perms.some((p) => p.startsWith(`${module}.`))) return true;
+    if (!action && modulePrefixes.has(module)) return true;
 
     return false;
-  }, [user]);
+  }, [user, hasSuperAdmin, permissionSet, modulePrefixes]);
 
   const contextValue = useMemo<AuthContextType>(() => ({
     user,

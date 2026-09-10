@@ -784,6 +784,7 @@ export class EmailQueue {
           paymentType: data.paymentMethod,
           paymentDate: data.paymentDate,
           receiptNumber: data.paymentNumber,
+          receiptToken: data.receiptToken,
           recipientEmail: data.memberEmail,
         });
 

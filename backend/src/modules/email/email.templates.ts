@@ -207,10 +207,14 @@ export function renderPaymentConfirmationEmail(params: {
   paymentReference: string;
   paymentType?: string;
   receiptNumber?: string;
+  receiptToken?: string;
   recipientEmail?: string;
 }): RenderedEmail {
   const subject = `Payment Confirmation ${EMAIL_BRAND.subjectSuffix}`;
   const date = params.paymentDate || new Date().toLocaleDateString('en-US', { dateStyle: 'medium' });
+  const receiptUrl = params.receiptToken
+    ? `https://invesmentclub.top/receipt/${params.receiptToken}`
+    : `${EMAIL_BRAND.portalUrl}/receipts`;
 
   const content = `
     ${renderGreeting(params.memberName)}
@@ -231,7 +235,7 @@ export function renderPaymentConfirmationEmail(params: {
     ],
   })}
     ${renderParagraph(
-    'A formal receipt has been archived in your club digital profile for your personal financial records.'
+    'A formal public digital receipt has been generated and archived for your official club records. Click the button below to view or print your digital receipt anytime without requiring a dashboard login.'
   )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
@@ -245,7 +249,7 @@ export function renderPaymentConfirmationEmail(params: {
     content,
     actionButton: {
       label: 'View Digital Receipt',
-      url: `${EMAIL_BRAND.portalUrl}/receipts`,
+      url: receiptUrl,
     },
     recipientEmail: params.recipientEmail,
     showUnsubscribe: false,
@@ -265,7 +269,7 @@ PAYMENT DETAILS:
 - Type: ${params.paymentType || 'Membership / Club Dues'}
 - Date: ${date}
 ${params.receiptNumber ? `- Receipt: ${params.receiptNumber}\n` : ''}
-View Receipt: ${EMAIL_BRAND.portalUrl}/receipts
+View Digital Receipt: ${receiptUrl}
 
 Regards,
 Office of the Treasurer

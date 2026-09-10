@@ -54,7 +54,8 @@ import integrationsRoutes from './modules/integrations/integrations.routes';
 import webhooksRoutes from './modules/integrations/webhooks.routes';
 import settingsRoutes from './modules/settings/settings.routes';
 import emailRoutes from './modules/email/email.routes';
-import { errorHandler } from './middleware/error.middleware';
+import publicReceiptsRoutes from './modules/receipts/public-receipts.routes';
+import { errorHandler, getTelemetryMetrics, getRecentErrors } from './middleware/error.middleware';
 
 // Approved static production & development origins
 const STATIC_ALLOWED_ORIGINS = new Set([
@@ -167,7 +168,7 @@ export const createApp = (): Express => {
     next();
   });
 
-  // API Health Check (Root & v1)
+  // API Health Check (Root & v1) - Ultra-lightweight for probes & load balancers
   const healthResponse = (_req: Request, res: Response) => {
     const { isSupabaseConfigured } = require('./config/supabase');
     res.status(200).json({
@@ -175,14 +176,102 @@ export const createApp = (): Express => {
       service: 'DIU Investment Club Finance API',
       status: 'operational',
       supabaseConnected: isSupabaseConfigured(),
+      uptimeSeconds: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
-      version: '2.4.0',
+      version: '2.5.0',
     });
   };
 
   app.get('/health', healthResponse);
   app.get('/api/v1/health', healthResponse);
   app.get('/', healthResponse);
+
+  // System Diagnostics Endpoint (Admin & Real-world Monitoring)
+  app.get('/api/v1/system/diagnostics', async (_req: Request, res: Response) => {
+    const { supabaseClient, isSupabaseConfigured } = require('./config/supabase');
+    const startTime = Date.now();
+
+    let dbStatus: 'OPERATIONAL' | 'DATABASE FAILURE' = 'DATABASE FAILURE';
+    let dbLatencyMs = 0;
+    let emailStatus: 'HEALTHY' | 'EMAIL FAILURE' = 'HEALTHY';
+    let emailTelemetry = { sentLast24h: 0, failedLast24h: 0, pendingLast24h: 0 };
+    let bgJobsStatus: 'ACTIVE' | 'BACKGROUND JOB FAILURE' = 'ACTIVE';
+
+    // 1. Check Database Connectivity
+    if (isSupabaseConfigured() && supabaseClient) {
+      try {
+        const pingStart = Date.now();
+        const { error } = await supabaseClient.from('profiles').select('id', { count: 'exact', head: true });
+        dbLatencyMs = Date.now() - pingStart;
+        if (!error) {
+          dbStatus = 'OPERATIONAL';
+        }
+      } catch {
+        dbStatus = 'DATABASE FAILURE';
+      }
+
+      // 2. Check Email Subsystem Telemetry (Last 24 Hours)
+      try {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: logs } = await supabaseClient
+          .from('email_logs')
+          .select('status')
+          .gte('created_at', since);
+
+        if (logs && Array.isArray(logs)) {
+          emailTelemetry.sentLast24h = logs.filter((l: any) => l.status === 'SENT').length;
+          emailTelemetry.failedLast24h = logs.filter((l: any) => l.status === 'FAILED').length;
+          emailTelemetry.pendingLast24h = logs.filter((l: any) => l.status === 'PENDING').length;
+
+          if (emailTelemetry.failedLast24h > 5 && emailTelemetry.failedLast24h > emailTelemetry.sentLast24h) {
+            emailStatus = 'EMAIL FAILURE';
+          }
+        }
+      } catch {
+        emailStatus = 'EMAIL FAILURE';
+      }
+    }
+
+    // 3. Telemetry Metrics & Memory
+    const telemetry = getTelemetryMetrics();
+    const recentErrors = getRecentErrors(10);
+    const mem = process.memoryUsage();
+
+    res.status(200).json({
+      success: true,
+      service: 'DIU Investment Club ERP Monitoring',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      responseTimeMs: Date.now() - startTime,
+      indicators: {
+        apiStatus: 'OPERATIONAL',
+        databaseStatus: dbStatus,
+        emailStatus: emailStatus,
+        backgroundJobsStatus: bgJobsStatus,
+      },
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+        provider: 'Supabase PostgreSQL',
+      },
+      emailSystem: {
+        status: emailStatus,
+        provider: 'Resend',
+        sender: 'noreply@invesmentclub.top',
+        telemetry24h: emailTelemetry,
+      },
+      memory: {
+        heapUsedMb: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+        heapTotalMb: Math.round((mem.heapTotal / 1024 / 1024) * 100) / 100,
+        rssMb: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+      },
+      telemetry,
+      recentErrors,
+    });
+  });
+
+  // Public Digital Receipts v1 (Unauthenticated, Secure Token, Rate Limited)
+  app.use('/api/v1/public/receipts', publicReceiptsRoutes);
 
   // REST Modules v1
   app.use('/api/v1/auth', authRoutes);

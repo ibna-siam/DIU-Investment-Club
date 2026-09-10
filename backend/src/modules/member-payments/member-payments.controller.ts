@@ -135,6 +135,7 @@ export class MemberPaymentsController {
                 paymentMethod: payment.payment_method,
                 paymentDate: payment.payment_date || new Date().toISOString().split('T')[0],
                 referenceNumber: payment.reference_number || payment.payment_number,
+                receiptToken: payment.receipt_token || undefined,
                 verifiedBy: req.user?.id,
               },
             });

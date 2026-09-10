@@ -624,6 +624,7 @@ export interface MemberPayment {
   id: string;
   payment_number: string;
   receipt_number?: string | null;
+  receipt_token?: string | null;
   member_id: string;
   member?: Member;
   due_id?: string | null;
