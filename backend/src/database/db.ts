@@ -12,7 +12,7 @@ if (env.DATABASE_URL && env.DATABASE_URL !== 'postgresql://postgres:postgres@loc
       connectionString: env.DATABASE_URL,
       ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
     });
-    pgPool.on('error', (err) => {
+    pgPool.on('error', (err: Error) => {
       console.error('PostgreSQL Pool Error:', err);
     });
   } catch (err) {
