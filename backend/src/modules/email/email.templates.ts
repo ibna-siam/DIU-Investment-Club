@@ -10,6 +10,7 @@
  */
 
 import { EMAIL_BRAND } from './email.brand';
+import { DEFAULT_FROM_EMAIL } from './email.config';
 import { escapeHtml } from './email.security';
 import {
   renderBaseLayout,
@@ -890,7 +891,7 @@ export function renderTestEmail(params: {
       { label: 'Service Provider', value: 'Resend API (Official SDK)' },
       { label: 'Environment', value: params.environment.toUpperCase() },
       { label: 'Server Timestamp', value: params.serverTime },
-      { label: 'Sender Address', value: 'onboarding@resend.dev (Sandbox)' },
+      { label: 'Sender Address', value: DEFAULT_FROM_EMAIL },
     ],
   })}
     ${params.notes ? renderAlertBox(params.notes, 'info') : ''}
