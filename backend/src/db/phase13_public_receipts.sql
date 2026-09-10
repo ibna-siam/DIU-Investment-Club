@@ -11,7 +11,8 @@ ADD COLUMN IF NOT EXISTS receipt_token TEXT UNIQUE;
 CREATE INDEX IF NOT EXISTS idx_member_payments_receipt_token 
 ON public.member_payments(receipt_token);
 
--- 3. Backfill existing VERIFIED payments with secure 64-char hex tokens
+-- 3. Backfill existing VERIFIED payments with secure 64-char hex tokens using native core CSPRNG
 UPDATE public.member_payments 
-SET receipt_token = encode(gen_random_bytes(32), 'hex') 
+SET receipt_token = replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '')
 WHERE receipt_token IS NULL AND status = 'VERIFIED';
+
