@@ -1,7 +1,7 @@
 import { store, queryDatabase } from '../../database/db';
 import { UserProfile, Role, UserStatus, PaginatedResponse } from '../../types';
 import { rolesRepository } from '../roles/roles.repository';
-import { supabaseClient, isSupabaseConfigured } from '../../config/supabase';
+import { supabaseClient, supabaseAdmin, isSupabaseConfigured } from '../../config/supabase';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { invalidateAuthCache } from '../../middleware/auth.middleware';
@@ -680,6 +680,194 @@ export class UsersRepository {
       totalRoles: roles.length,
       systemStatus: 'Operational',
       roleDistribution: roleDist,
+    };
+  }
+
+  /**
+   * Inspect all foreign key and audit/financial dependencies for a user.
+   */
+  async inspectUserDependencies(userId: string): Promise<{
+    hasFinancialHistory: boolean;
+    hasAuditLogs: boolean;
+    hasMemberRecord: boolean;
+    details: {
+      transactionsCount: number;
+      expensesCount: number;
+      incomesCount: number;
+      journalEntriesCount: number;
+      vouchersCount: number;
+      memberPaymentsCount: number;
+      auditLogsCount: number;
+      isMemberLinked: boolean;
+    };
+  }> {
+    const details = {
+      transactionsCount: 0,
+      expensesCount: 0,
+      incomesCount: 0,
+      journalEntriesCount: 0,
+      vouchersCount: 0,
+      memberPaymentsCount: 0,
+      auditLogsCount: 0,
+      isMemberLinked: false,
+    };
+
+    if (isSupabaseConfigured() && supabaseClient) {
+      try {
+        const [txRes, expRes, incRes, jRes, vRes, payRes, auditRes, memRes] = await Promise.all([
+          supabaseClient.from('transactions').select('id', { count: 'exact', head: true }).eq('created_by', userId),
+          supabaseClient.from('expenses').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},approved_by.eq.${userId}`),
+          supabaseClient.from('incomes').select('id', { count: 'exact', head: true }).eq('created_by', userId),
+          supabaseClient.from('journal_entries').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},posted_by.eq.${userId},reversed_by.eq.${userId}`),
+          supabaseClient.from('vouchers').select('id', { count: 'exact', head: true }).or(`prepared_by.eq.${userId},approved_by.eq.${userId}`),
+          supabaseClient.from('member_payments').select('id', { count: 'exact', head: true }).or(`created_by.eq.${userId},verified_by.eq.${userId}`),
+          supabaseClient.from('audit_logs').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+          supabaseClient.from('members').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+        ]);
+
+        details.transactionsCount = txRes.count || 0;
+        details.expensesCount = expRes.count || 0;
+        details.incomesCount = incRes.count || 0;
+        details.journalEntriesCount = jRes.count || 0;
+        details.vouchersCount = vRes.count || 0;
+        details.memberPaymentsCount = payRes.count || 0;
+        details.auditLogsCount = auditRes.count || 0;
+        details.isMemberLinked = (memRes.count || 0) > 0;
+      } catch (e) {}
+    }
+
+    const hasFinancialHistory =
+      details.transactionsCount > 0 ||
+      details.expensesCount > 0 ||
+      details.incomesCount > 0 ||
+      details.journalEntriesCount > 0 ||
+      details.vouchersCount > 0 ||
+      details.memberPaymentsCount > 0;
+
+    const hasAuditLogs = details.auditLogsCount > 0;
+    const hasMemberRecord = details.isMemberLinked;
+
+    return {
+      hasFinancialHistory,
+      hasAuditLogs,
+      hasMemberRecord,
+      details,
+    };
+  }
+
+  /**
+   * Safe user deletion / deactivation workflow with strict financial integrity protection.
+   */
+  async deleteUser(
+    userId: string,
+    requestingUser?: UserProfile,
+    options?: { forceDeactivate?: boolean }
+  ): Promise<{
+    action: 'deleted' | 'deactivated';
+    message: string;
+    dependencies: any;
+    user?: UserProfile | null;
+  }> {
+    // 1. Guard against deleting self
+    if (requestingUser && requestingUser.id === userId) {
+      throw new Error('You cannot delete your own user account. Please contact another Super Administrator.');
+    }
+
+    // 2. Guard against deleting the only active Super Admin
+    const targetUser = await this.findById(userId);
+    if (!targetUser) {
+      throw new Error('User does not exist.');
+    }
+
+    const isTargetSuperAdmin = targetUser.roles?.some((r) => r.slug === 'SUPER_ADMIN');
+    if (isTargetSuperAdmin) {
+      const allAdmins = await this.findAll({ role: 'SUPER_ADMIN', status: 'active', limit: 5 });
+      if (allAdmins.total <= 1) {
+        throw new Error('Security Guard: Cannot delete the only remaining active Super Administrator in the system.');
+      }
+    }
+
+    // 3. Inspect dependencies
+    const deps = await this.inspectUserDependencies(userId);
+    const hasDependencies = deps.hasFinancialHistory || deps.hasAuditLogs || deps.hasMemberRecord;
+
+    // 4. If user has financial records, do NOT delete. Safely deactivate to maintain audit integrity.
+    if (hasDependencies || options?.forceDeactivate) {
+      await this.updateStatus(userId, 'inactive');
+
+      // Strip sensitive user roles to revoke privileges
+      if (isSupabaseConfigured() && supabaseClient) {
+        try {
+          await supabaseClient.from('user_roles').delete().eq('user_id', userId);
+        } catch (e) {}
+      }
+      for (const ur of Array.from(store.userRoles)) {
+        if (ur.startsWith(`${userId}:`)) {
+          store.userRoles.delete(ur);
+        }
+      }
+
+      // Invalidate session cache
+      invalidateAuthCache(userId);
+
+      // Disable Supabase Auth login if configured
+      if (isSupabaseConfigured() && supabaseAdmin) {
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: '876000h' });
+        } catch (e) {}
+      }
+
+      const updated = await this.findById(userId);
+
+      return {
+        action: 'deactivated',
+        user: updated,
+        message: 'Account safely deactivated. Financial history and audit records have been preserved for accounting integrity.',
+        dependencies: deps.details,
+      };
+    }
+
+    // 5. User has NO financial history or audit logs: Proceed with clean permanent deletion
+    if (isSupabaseConfigured() && supabaseClient) {
+      try {
+        await supabaseClient.from('user_roles').delete().eq('user_id', userId);
+        await supabaseClient.from('user_permissions').delete().eq('user_id', userId);
+        await supabaseClient.from('notifications').delete().eq('user_id', userId);
+        await supabaseClient.from('members').update({ user_id: null }).eq('user_id', userId);
+        await supabaseClient.from('profiles').delete().eq('id', userId);
+      } catch (e) {}
+    }
+
+    try {
+      await queryDatabase('DELETE FROM public.user_roles WHERE user_id = $1', [userId]);
+      await queryDatabase('DELETE FROM public.user_permissions WHERE user_id = $1', [userId]);
+      await queryDatabase('DELETE FROM public.notifications WHERE user_id = $1', [userId]);
+      await queryDatabase('UPDATE public.members SET user_id = NULL WHERE user_id = $1', [userId]);
+      await queryDatabase('DELETE FROM public.profiles WHERE id = $1', [userId]);
+    } catch (e) {}
+
+    // Store cleanup
+    store.profiles.delete(userId);
+    for (const ur of Array.from(store.userRoles)) {
+      if (ur.startsWith(`${userId}:`)) store.userRoles.delete(ur);
+    }
+    for (const up of Array.from(store.userPermissions)) {
+      if (up.startsWith(`${userId}:`)) store.userPermissions.delete(up);
+    }
+
+    // Supabase Auth deletion
+    if (isSupabaseConfigured() && supabaseAdmin) {
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+      } catch (e) {}
+    }
+
+    invalidateAuthCache(userId);
+
+    return {
+      action: 'deleted',
+      message: 'User permanently deleted successfully.',
+      dependencies: deps.details,
     };
   }
 }

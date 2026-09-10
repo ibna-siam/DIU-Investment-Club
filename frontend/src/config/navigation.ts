@@ -251,6 +251,9 @@ export function getAuthorizedNavItems(
  * Every registered dashboard route is protected here.
  */
 export const ROUTE_PERMISSIONS: Record<string, string> = {
+  // Main Dashboard
+  '/dashboard': 'dashboard.read',
+
   // Specific sub-routes first (checked before parent routes)
   '/events/create': 'events.create',
   '/income/create': 'income.create',

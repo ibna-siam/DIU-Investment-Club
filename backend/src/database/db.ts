@@ -92,6 +92,14 @@ class InMemoryStore {
         is_system: true,
         created_at: new Date().toISOString(),
       },
+      {
+        id: '88888888-8888-8888-8888-888888888888',
+        name: 'General Member',
+        slug: 'GENERAL_MEMBER',
+        description: 'Standard club member with basic read access to events, announcements, and profile',
+        is_system: true,
+        created_at: new Date().toISOString(),
+      },
     ];
 
     for (const r of defaultRoles) {
@@ -172,6 +180,14 @@ class InMemoryStore {
           ['dashboard', 'financial_accounts', 'income', 'expenses', 'transactions', 'accounting', 'reports', 'audit_logs'].includes(m)
         ) {
           this.rolePermissions.add(`${defaultRoles[6].id}:${perm.id}`);
+        }
+
+        // GENERAL MEMBER (Read-only on dashboard, events, tasks, notifications)
+        if (
+          a === 'read' &&
+          ['dashboard', 'events', 'tasks', 'notifications'].includes(m)
+        ) {
+          this.rolePermissions.add(`${defaultRoles[7].id}:${perm.id}`);
         }
       }
     }

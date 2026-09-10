@@ -888,7 +888,7 @@ export function renderTestEmail(params: {
 
     ${renderGreeting(name)}
     ${renderParagraph(
-      `This message confirms that the <strong>DIU Investment Club Email System</strong> is fully operational and actively transmitting via the <strong>Resend</strong> provider using verified custom domain <strong style="color: #10b981;">invesment.top</strong>.`
+      `This message confirms that the <strong>DIU Investment Club Email System</strong> is fully operational and actively transmitting via the <strong>Resend</strong> provider using verified custom domain <strong style="color: #10b981;">invesmentclub.top</strong>.`
     )}
 
     ${renderInfoCard({
@@ -897,7 +897,7 @@ export function renderTestEmail(params: {
         { label: 'System Status', value: 'OPERATIONAL (SUCCESS)', highlight: true },
         { label: 'Delivery Provider', value: 'Resend API (Official SDK)' },
         { label: 'Official Sender', value: DEFAULT_FROM_EMAIL },
-        { label: 'Verified Domain', value: 'invesment.top' },
+        { label: 'Verified Domain', value: 'invesmentclub.top' },
         { label: 'Target Recipient', value: params.recipientEmail || 'siamibna75@gmail.com' },
         { label: 'Environment Mode', value: params.environment.toUpperCase() },
         { label: 'Server Timestamp', value: params.serverTime },
@@ -908,7 +908,7 @@ export function renderTestEmail(params: {
 
     <div style="margin-top: 24px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-left: 3px solid #10b981; border-radius: 4px;">
       <p style="margin: 0; font-size: 13px; color: ${EMAIL_BRAND.colors.textSecondary}; line-height: 1.5;">
-        <strong>System Verification Note:</strong> All core email infrastructure (branded templates, SPF/DKIM authentication on <code style="color: #10b981;">invesment.top</code>, and Resend delivery credentials) is active and verified. Live production automation workflows remain safe and isolated from test runs.
+        <strong>System Verification Note:</strong> All core email infrastructure (branded templates, SPF/DKIM authentication on <code style="color: #10b981;">invesmentclub.top</code>, and Resend delivery credentials) is active and verified. Live production automation workflows remain safe and isolated from test runs.
       </p>
     </div>
 
@@ -937,13 +937,13 @@ DIU Investment Club – Email System Test
 
 Hello ${name},
 
-This message confirms that the DIU Investment Club Email System is fully operational and actively transmitting via Resend using verified custom domain invesment.top.
+This message confirms that the DIU Investment Club Email System is fully operational and actively transmitting via Resend using verified custom domain invesmentclub.top.
 
 DIAGNOSTICS TELEMETRY:
 - System Status: OPERATIONAL (SUCCESS)
 - Delivery Provider: Resend API
 - Official Sender: ${DEFAULT_FROM_EMAIL}
-- Verified Domain: invesment.top
+- Verified Domain: invesmentclub.top
 - Target Recipient: ${params.recipientEmail || 'siamibna75@gmail.com'}
 - Environment Mode: ${params.environment}
 - Server Timestamp: ${params.serverTime}

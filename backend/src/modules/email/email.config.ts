@@ -4,8 +4,8 @@ import { env } from '../../config/env';
 /**
  * Resend Email Service Configuration
  *
- * Production Verified Domain: invesment.top
- * Sender Identity: DIU Investment Club <noreply@invesment.top>
+ * Production Verified Domain: invesmentclub.top
+ * Sender Identity: DIU Investment Club <noreply@invesmentclub.top>
  */
 
 export const isResendConfigured = (): boolean => {
@@ -26,7 +26,7 @@ export const getResendClient = (): Resend => {
   return resendInstance;
 };
 
-export const DEFAULT_FROM_EMAIL = env.RESEND_FROM_EMAIL || 'DIU Investment Club <noreply@invesment.top>';
+export const DEFAULT_FROM_EMAIL = env.RESEND_FROM_EMAIL || 'DIU Investment Club <noreply@invesmentclub.top>';
 export const DEFAULT_ADMIN_EMAIL = env.ADMIN_EMAIL || 'admin@diu.edu.bd';
 export const DEFAULT_TEST_RECIPIENT = env.RESEND_TEST_RECIPIENT || 'siamibna75@gmail.com';
 

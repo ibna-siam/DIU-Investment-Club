@@ -30,9 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           content="Centralized financial and accounting management platform for DIU Investment Club."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="canonical" href="https://invesment.top" />
+        <link rel="canonical" href="https://invesmentclub.top" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://invesment.top" />
+        <meta property="og:url" content="https://invesmentclub.top" />
         <meta property="og:title" content="DIU Investment Club - Financial Management System" />
         <meta
           property="og:description"

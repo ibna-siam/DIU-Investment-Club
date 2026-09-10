@@ -48,4 +48,9 @@ router.delete('/:id/permissions/:permissionId', requireRole('SUPER_ADMIN'), (req
   usersController.removeUserPermission(req, res, next)
 );
 
+router.delete('/:id', requireRole('SUPER_ADMIN'), (req, res, next) =>
+  usersController.deleteUser(req, res, next)
+);
+
 export default router;
+

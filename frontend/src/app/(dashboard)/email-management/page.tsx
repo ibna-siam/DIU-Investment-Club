@@ -693,11 +693,11 @@ export default function EmailManagementPage() {
             <div className="text-slate-400 uppercase tracking-wider font-semibold text-[10px] mb-1">
               Sender Email
             </div>
-            <div className="text-sm font-bold text-white font-mono truncate" title={providerStatus?.senderEmail || 'noreply@invesment.top'}>
-              {providerStatus?.senderEmail || 'noreply@invesment.top'}
+            <div className="text-sm font-bold text-white font-mono truncate" title={providerStatus?.senderEmail || 'noreply@invesmentclub.top'}>
+              {providerStatus?.senderEmail || 'noreply@invesmentclub.top'}
             </div>
-            <div className="text-[11px] text-slate-500 mt-1 truncate" title={providerStatus?.from || 'DIU Investment Club <noreply@invesment.top>'}>
-              {providerStatus?.from || 'DIU Investment Club <noreply@invesment.top>'}
+            <div className="text-[11px] text-slate-500 mt-1 truncate" title={providerStatus?.from || 'DIU Investment Club <noreply@invesmentclub.top>'}>
+              {providerStatus?.from || 'DIU Investment Club <noreply@invesmentclub.top>'}
             </div>
           </div>
 
@@ -707,7 +707,7 @@ export default function EmailManagementPage() {
               Domain Status
             </div>
             <div className="text-sm font-bold text-white flex items-center gap-2">
-              <span className="font-mono text-slate-200">{providerStatus?.domain || 'invesment.top'}</span>
+              <span className="font-mono text-slate-200">{providerStatus?.domain || 'invesmentclub.top'}</span>
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 <CheckCircle2 className="w-2.5 h-2.5" /> {providerStatus?.domainStatus || 'Verified'}
               </span>

@@ -96,7 +96,6 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 <Link
                   key={item.href + item.title}
                   href={item.href}
-                  prefetch={false}
                   onClick={onClose}
                   className={cn(
                     'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -146,7 +145,6 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                         <Link
                           key={child.href}
                           href={child.href}
-                          prefetch={false}
                           onClick={onClose}
                           className={cn(
                             'block rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',

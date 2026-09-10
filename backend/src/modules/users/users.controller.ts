@@ -484,6 +484,56 @@ export class UsersController {
       next(err);
     }
   }
+
+  async deleteUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { forceDeactivateIfDependencies, reason } = req.body || {};
+
+      if (!req.user?.id) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+
+      const result = await usersRepository.deleteUser(
+        id,
+        req.user,
+        { forceDeactivate: forceDeactivateIfDependencies !== false }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result,
+      });
+    } catch (err: any) {
+      if (err.message?.includes('Self-deletion') || err.message?.includes('Cannot delete or deactivate the last')) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_OPERATION', message: err.message },
+        });
+        return;
+      }
+      if (err.message?.includes('User not found')) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: err.message },
+        });
+        return;
+      }
+      if (err.message?.includes('Cannot hard delete')) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'DEPENDENCY_CONFLICT', message: err.message },
+        });
+        return;
+      }
+      next(err);
+    }
+  }
 }
 
 export const usersController = new UsersController();

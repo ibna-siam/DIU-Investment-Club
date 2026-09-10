@@ -58,6 +58,9 @@ import { errorHandler } from './middleware/error.middleware';
 
 // Approved static production & development origins
 const STATIC_ALLOWED_ORIGINS = new Set([
+  'https://invesmentclub.top',
+  'https://www.invesmentclub.top',
+  'https://api.invesmentclub.top',
   'https://invesment.top',
   'https://www.invesment.top',
   'https://diu-investment-club.vercel.app',
@@ -166,8 +169,8 @@ export const createApp = (): Express => {
     next();
   });
 
-  // API Health Check
-  app.get('/api/v1/health', (req: Request, res: Response) => {
+  // API Health Check (Root & v1)
+  const healthResponse = (_req: Request, res: Response) => {
     const { isSupabaseConfigured } = require('./config/supabase');
     res.status(200).json({
       success: true,
@@ -177,7 +180,11 @@ export const createApp = (): Express => {
       timestamp: new Date().toISOString(),
       version: '2.4.0',
     });
-  });
+  };
+
+  app.get('/health', healthResponse);
+  app.get('/api/v1/health', healthResponse);
+  app.get('/', healthResponse);
 
   // REST Modules v1
   app.use('/api/v1/auth', authRoutes);

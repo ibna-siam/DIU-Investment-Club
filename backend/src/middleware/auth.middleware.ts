@@ -72,40 +72,40 @@ export const authenticate = async (
     let userId: string | null = null;
     let userEmail: string | null = null;
 
-    // 1. Try Supabase Auth verification if configured
-    const client = supabaseAdmin || supabaseClient;
-    if (isSupabaseConfigured() && client) {
-      try {
-        const { data, error } = await client.auth.getUser(token);
-        if (!error && data?.user) {
-          userId = data.user.id;
-          userEmail = data.user.email || null;
+    // 1. Instant local JWT verification (avoids outbound HTTP network latency on every request)
+    try {
+      const decoded = jwt.verify(token, env.JWT_SECRET) as {
+        id?: string;
+        sub?: string;
+        email?: string;
+      };
+      userId = decoded.id || decoded.sub || null;
+      userEmail = decoded.email || null;
+    } catch (jwtErr) {
+      // 2. Fallback: Check if token was issued directly by Supabase Auth
+      const client = supabaseAdmin || supabaseClient;
+      if (isSupabaseConfigured() && client) {
+        try {
+          const { data, error } = await client.auth.getUser(token);
+          if (!error && data?.user) {
+            userId = data.user.id;
+            userEmail = data.user.email || null;
+          }
+        } catch (err) {
+          // Supabase token verification failed
         }
-      } catch (err) {
-        // Fallback to JWT decode
       }
     }
 
-    // 2. Try standard JWT verification if Supabase token check didn't resolve
     if (!userId) {
-      try {
-        const decoded = jwt.verify(token, env.JWT_SECRET) as {
-          id?: string;
-          sub?: string;
-          email?: string;
-        };
-        userId = decoded.id || decoded.sub || null;
-        userEmail = decoded.email || null;
-      } catch (jwtErr) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'INVALID_TOKEN',
-            message: 'Session has expired or token is invalid. Please log in again.',
-          },
-        });
-        return;
-      }
+      res.status(401).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Session has expired or token is invalid. Please log in again.',
+        },
+      });
+      return;
     }
 
     if (!userId) {

@@ -6,6 +6,27 @@
 -- 1. ENABLE ROW LEVEL SECURITY (RLS) ON EXPOSED TABLES
 ALTER TABLE IF EXISTS public.system_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.user_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.email_logs ENABLE ROW LEVEL SECURITY;
+
+-- Email Logs RLS
+DROP POLICY IF EXISTS "Email logs readable by authenticated users" ON public.email_logs;
+CREATE POLICY "Email logs readable by authenticated users"
+    ON public.email_logs FOR SELECT
+    TO authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "Email logs insertable by authenticated or service" ON public.email_logs;
+CREATE POLICY "Email logs insertable by authenticated or service"
+    ON public.email_logs FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Super admins can manage email logs" ON public.email_logs;
+CREATE POLICY "Super admins can manage email logs"
+    ON public.email_logs FOR ALL
+    TO authenticated
+    USING (public.is_super_admin((SELECT auth.uid())))
+    WITH CHECK (public.is_super_admin((SELECT auth.uid())));
 
 -- System Settings RLS
 DROP POLICY IF EXISTS "System settings readable by authenticated" ON public.system_settings;

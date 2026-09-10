@@ -106,7 +106,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
         {!collapsed && (
-          <Link href="/dashboard" prefetch={false} className="flex items-center space-x-3 overflow-hidden group">
+          <Link href="/dashboard" className="flex items-center space-x-3 overflow-hidden group">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-lg shadow-md shadow-emerald-950 group-hover:bg-emerald-500 transition-colors">
               DIU
             </div>
@@ -118,7 +118,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         )}
 
         {collapsed && (
-          <Link href="/dashboard" prefetch={false} className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-lg">
+          <Link href="/dashboard" className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-lg">
             DIU
           </Link>
         )}
@@ -187,7 +187,6 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                         <Link
                           key={child.title}
                           href={child.href}
-                          prefetch={false}
                           className={cn(
                             'flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                             isChildActive
@@ -213,7 +212,6 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
             <Link
               key={item.title}
               href={item.href}
-              prefetch={false}
               className={cn(
                 'flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                 isActive

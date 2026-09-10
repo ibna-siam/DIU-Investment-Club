@@ -6,4 +6,4 @@ Disallow: /accounts/
 Disallow: /accounting/
 Disallow: /admin/
 
-Sitemap: https://invesment.top/sitemap.xml
+Sitemap: https://invesmentclub.top/sitemap.xml

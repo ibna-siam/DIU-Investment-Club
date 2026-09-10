@@ -25,12 +25,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Optimistic initial hydration from localStorage on client mount
+  useEffect(() => {
+    try {
+      const storedToken = localStorage.getItem('diu_auth_token');
+      const storedUser = localStorage.getItem('diu_auth_user');
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        setLoading(false);
+      }
+    } catch (e) {}
+  }, []);
+
   const refreshUser = useCallback(async () => {
     try {
       const storedToken = localStorage.getItem('diu_auth_token');
       if (!storedToken) {
         setUser(null);
         setToken(null);
+        localStorage.removeItem('diu_auth_user');
         setLoading(false);
         return;
       }
@@ -39,14 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await api.get<{ success: boolean; data: UserProfile }>('/auth/me');
       if (res.success && res.data) {
         setUser(res.data);
+        localStorage.setItem('diu_auth_user', JSON.stringify(res.data));
       } else {
         setUser(null);
+        localStorage.removeItem('diu_auth_user');
       }
     } catch (err: any) {
       console.warn('Session refresh check:', err);
       // Only remove token if explicitly unauthorized
       if (err?.status === 401 || err?.code === 'UNAUTHORIZED' || err?.code === 'TOKEN_EXPIRED') {
         localStorage.removeItem('diu_auth_token');
+        localStorage.removeItem('diu_auth_user');
         setUser(null);
         setToken(null);
       }
@@ -67,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('diu_auth_token');
+          localStorage.removeItem('diu_auth_user');
           setUser(null);
           setToken(null);
         }
@@ -103,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.success && res.data) {
         localStorage.setItem('diu_auth_token', res.data.token);
+        localStorage.setItem('diu_auth_user', JSON.stringify(res.data.user));
         setToken(res.data.token);
         setUser(res.data.user);
         router.push('/dashboard');
@@ -121,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } finally {
       localStorage.removeItem('diu_auth_token');
+      localStorage.removeItem('diu_auth_user');
       setUser(null);
       setToken(null);
       setLoading(false);

@@ -71,17 +71,17 @@ async function runVerification() {
   );
 
   // --------------------------------------------------------------------
-  // TEST 2: Verified Sender Domain (invesment.top)
+  // TEST 2: Verified Sender Domain (invesmentclub.top)
   // --------------------------------------------------------------------
   console.log('\n--- TEST 2: Verified Sender Domain Configuration ---');
   const fromEmail = DEFAULT_FROM_EMAIL;
   const isVerifiedDomain =
-    fromEmail.includes('invesment.top') &&
-    fromEmail.includes('noreply@invesment.top') &&
+    fromEmail.includes('invesmentclub.top') &&
+    fromEmail.includes('noreply@invesmentclub.top') &&
     fromEmail.includes('DIU Investment Club');
   assert(
     isVerifiedDomain,
-    'Verified Domain Sender Identity (noreply@invesment.top)',
+    'Verified Domain Sender Identity (noreply@invesmentclub.top)',
     `Configured Sender: "${fromEmail}"`
   );
   assert(

@@ -4,7 +4,6 @@ import { isSupabaseConfigured } from './config/supabase';
 import { rolesRepository } from './modules/roles/roles.repository';
 import { usersRepository } from './modules/users/users.repository';
 import { automationScheduler } from './modules/automation/automation.scheduler';
-import { reminderScheduler } from './modules/reminders/reminder.scheduler';
 import { emailQueue } from './modules/email/email.queue';
 import bcrypt from 'bcryptjs';
 
@@ -47,17 +46,13 @@ const startServer = async () => {
     console.log(`🔗 API Base: http://localhost:${env.PORT}/api/v1`);
     console.log(`=======================================================`);
 
-    // Start Phase 9 server-side automation scheduler
-    automationScheduler.start(60000); // 60s periodic evaluations
-
-    // Start Phase 8 smart email reminder scheduler
-    reminderScheduler.start();
+    // Start unified automation & reminder background scheduler
+    automationScheduler.start(60000); // 60s periodic evaluations (rules, recurring ops, reminders, sweep)
   });
 
   const shutdown = async () => {
     console.log('Stopping server gracefully...');
     automationScheduler.stop();
-    reminderScheduler.stop();
     server.close(() => {
       console.log('Server stopped');
       process.exit(0);

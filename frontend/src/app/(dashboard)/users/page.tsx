@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Eye,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,6 +47,16 @@ export default function UsersPage() {
   const [newPassword, setNewPassword] = useState('');
   const [newRoleId, setNewRoleId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Delete / Deactivate User Modal state
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteFeedback, setDeleteFeedback] = useState<{
+    type: 'success' | 'info' | 'error';
+    message: string;
+    details?: string;
+  } | null>(null);
 
   // Fetch Users
   const { data: usersData, isLoading: usersLoading } = useQuery<PaginatedResponse<UserProfile>>({
@@ -146,6 +157,44 @@ export default function UsersPage() {
     },
     onError: (err: any) => {
       setCreateError(err.message || 'Failed to create user');
+    },
+  });
+
+  // Safe Delete / Deactivate User Mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api.delete<{
+        success: boolean;
+        message: string;
+        data: {
+          action: 'deleted' | 'deactivated';
+          message: string;
+          details?: { dependencyCount: number; tablesWithData: string[] };
+        };
+      }>(`/users/${id}`, { body: { reason, forceDeactivateIfDependencies: true } }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      const action = res?.data?.action;
+      if (action === 'deleted') {
+        setDeleteFeedback({
+          type: 'success',
+          message: 'User account permanently deleted.',
+          details: 'No historical financial or audit dependencies existed for this user.',
+        });
+      } else {
+        setDeleteFeedback({
+          type: 'info',
+          message: 'User safely deactivated.',
+          details: `Historical dependencies were detected (${res?.data?.details?.tablesWithData?.join(', ') || 'financial/audit records'}). Account status was set to inactive and roles revoked to protect ledger integrity.`,
+        });
+      }
+    },
+    onError: (err: any) => {
+      setDeleteFeedback({
+        type: 'error',
+        message: err.message || 'Failed to delete/deactivate user.',
+      });
     },
   });
 
@@ -416,6 +465,23 @@ export default function UsersPage() {
                               {isActive ? 'Deactivate' : 'Activate'}
                             </Button>
                           )}
+
+                          {hasRole('SUPER_ADMIN') && !isCurrent && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1 text-xs border-rose-500/40 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300"
+                              onClick={() => {
+                                setUserToDelete(u);
+                                setDeleteReason('');
+                                setDeleteFeedback(null);
+                                setDeleteModalOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Delete</span>
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -672,6 +738,114 @@ export default function UsersPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Delete / Safe Deactivate User Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setUserToDelete(null);
+          setDeleteFeedback(null);
+        }}
+        title="Delete / Deactivate User"
+        description="Safely remove or deactivate an account while preserving financial ledger integrity."
+      >
+        {deleteFeedback && (
+          <div
+            className={`mb-4 rounded-lg border p-3 text-xs flex flex-col space-y-1 ${
+              deleteFeedback.type === 'success'
+                ? 'border-emerald-800 bg-emerald-950/40 text-emerald-300'
+                : deleteFeedback.type === 'info'
+                ? 'border-amber-800 bg-amber-950/40 text-amber-300'
+                : 'border-rose-900/60 bg-rose-950/40 text-rose-300'
+            }`}
+          >
+            <div className="flex items-center space-x-2 font-semibold">
+              {deleteFeedback.type === 'error' ? (
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+              ) : (
+                <CheckCircle className="h-4 w-4 shrink-0" />
+              )}
+              <span>{deleteFeedback.message}</span>
+            </div>
+            {deleteFeedback.details && (
+              <p className="text-[11px] opacity-90 pl-6">{deleteFeedback.details}</p>
+            )}
+          </div>
+        )}
+
+        {userToDelete && !deleteFeedback && (
+          <div className="space-y-4 text-sm">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+              <p className="font-medium text-slate-200">{userToDelete.full_name}</p>
+              <p className="text-xs text-slate-400">{userToDelete.email}</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Role: {userToDelete.roles?.[0]?.name || 'Member'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300/90 leading-relaxed">
+              <p className="font-semibold text-amber-300 mb-1">Financial Integrity Notice:</p>
+              If this user has any financial transactions, expenses, vouchers, incomes, or audit logs, their record will <strong>NOT</strong> be hard-deleted to prevent ledger corruption. Instead, the account will be safely deactivated, login disabled, and all roles revoked.
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                Reason (Optional)
+              </label>
+              <Input
+                placeholder="e.g. Graduation, left university, duplicate account"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setUserToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                loading={deleteUserMutation.isPending}
+                disabled={deleteUserMutation.isPending}
+                onClick={() => {
+                  deleteUserMutation.mutate({
+                    id: userToDelete.id,
+                    reason: deleteReason.trim() || undefined,
+                  });
+                }}
+                className="bg-rose-600 hover:bg-rose-500 text-white"
+              >
+                Confirm Delete / Deactivate
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {deleteFeedback && (
+          <div className="flex justify-end pt-3 border-t border-slate-800">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setUserToDelete(null);
+                setDeleteFeedback(null);
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        )}
       </Modal>
     </div>
   );
