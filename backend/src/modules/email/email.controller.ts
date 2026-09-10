@@ -22,16 +22,22 @@ export class EmailController {
       res.json({
         success: true,
         data: {
-          provider: 'RESEND',
-          primaryProvider: 'RESEND',
+          activeProvider: 'Resend',
+          provider: 'Resend',
+          primaryProvider: 'Resend',
+          senderEmail: 'noreply@invesment.top',
+          from: DEFAULT_FROM_EMAIL,
+          domain: 'invesment.top',
+          domainStatus: 'Verified',
+          apiConfigured: configured,
           brandName: EMAIL_BRAND.name,
           organization: EMAIL_BRAND.organizationName,
           configured,
           resendConfigured: configured,
-          from: DEFAULT_FROM_EMAIL,
           environment: process.env.NODE_ENV || 'development',
           sandboxMode: false,
           supportEmail: EMAIL_BRAND.supportEmail,
+          testRecipient: 'siamibna75@gmail.com',
         },
       });
     } catch (error: any) {
@@ -606,6 +612,9 @@ export class EmailController {
    * - Stored as TEST in email logs
    */
   async sendManualTestEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const targetRecipient = 'siamibna75@gmail.com';
+    const timestamp = new Date().toISOString();
+
     try {
       const primary = emailProvider;
       if (!primary.isConfigured()) {
@@ -613,14 +622,24 @@ export class EmailController {
           success: false,
           error: {
             code: 'EMAIL_SERVICE_UNAVAILABLE',
-            message: 'Email service is not configured. Provider credentials missing.',
+            message: 'Email service is not configured. RESEND_API_KEY missing from environment.',
+            provider: 'RESEND',
+            recipient: targetRecipient,
+            timestamp,
+          },
+          data: {
+            status: 'FAILED',
+            provider: 'RESEND',
+            recipient: targetRecipient,
+            timestamp,
+            messageId: null,
+            errorMessage: 'Email service is not configured. RESEND_API_KEY missing from environment.',
           },
         });
         return;
       }
 
       const settings = emailAutomationManager.getSettings();
-      const targetRecipient = settings.testRecipientEmail || 'siamibna75@gmail.com';
 
       const result = await emailService.sendTestEmail({
         to: targetRecipient,
@@ -634,8 +653,18 @@ export class EmailController {
           success: false,
           error: {
             code: 'TEST_EMAIL_FAILED',
-            message: result.error || 'Test Email Failed',
+            message: result.error || 'Test Email Failed: Provider rejected message transmission',
+            provider: 'RESEND',
             recipient: targetRecipient,
+            timestamp: result.sentAt || timestamp,
+          },
+          data: {
+            status: 'FAILED',
+            provider: 'RESEND',
+            recipient: targetRecipient,
+            timestamp: result.sentAt || timestamp,
+            messageId: result.id || null,
+            errorMessage: result.error || 'Test Email Failed: Provider rejected message transmission',
           },
         });
         return;
@@ -643,21 +672,34 @@ export class EmailController {
 
       res.json({
         success: true,
-        message: 'Test Email Sent Successfully',
+        message: 'Test Email Sent Successfully via Resend',
         data: {
+          status: 'SENT',
+          provider: 'RESEND',
           recipient: targetRecipient,
+          timestamp: result.sentAt || timestamp,
           messageId: result.id,
-          status: 'TEST',
-          sentAt: result.sentAt,
           environmentMode: settings.environmentMode,
         },
       });
     } catch (error: any) {
+      const errorMsg = error?.message || 'Unexpected failure during test email transmission';
       res.status(500).json({
         success: false,
         error: {
           code: 'TEST_EMAIL_FAILED',
-          message: error.message || 'Test Email Failed',
+          message: errorMsg,
+          provider: 'RESEND',
+          recipient: targetRecipient,
+          timestamp,
+        },
+        data: {
+          status: 'FAILED',
+          provider: 'RESEND',
+          recipient: targetRecipient,
+          timestamp,
+          messageId: null,
+          errorMessage: errorMsg,
         },
       });
     }

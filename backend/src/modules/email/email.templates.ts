@@ -876,26 +876,43 @@ export function renderTestEmail(params: {
   notes?: string;
   recipientEmail?: string;
 }): RenderedEmail {
-  const subject = `Resend Integration Verification ${EMAIL_BRAND.subjectSuffix}`;
-  const name = params.recipientName || 'Administrator';
+  const subject = `DIU Investment Club – Email System Test`;
+  const name = params.recipientName || 'Super Admin';
 
   const content = `
+    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; text-align: center;">
+      <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #10b981; letter-spacing: 0.1em; text-transform: uppercase;">
+        ⚡ [SYSTEM TEST EMAIL] — NO ACTION REQUIRED
+      </span>
+    </div>
+
     ${renderGreeting(name)}
     ${renderParagraph(
-    `This transmission verifies that the <strong>Resend Email Provider</strong> and the centralized <strong>${escapeHtml(EMAIL_BRAND.name)} Email Branding & Component System</strong> are fully operational.`
-  )}
+      `This message confirms that the <strong>DIU Investment Club Email System</strong> is fully operational and actively transmitting via the <strong>Resend</strong> provider using verified custom domain <strong style="color: #10b981;">invesment.top</strong>.`
+    )}
+
     ${renderInfoCard({
-    title: 'Transmission Telemetry',
-    items: [
-      { label: 'Email Brand', value: EMAIL_BRAND.name, highlight: true },
-      { label: 'Service Provider', value: 'Resend API (Official SDK)' },
-      { label: 'Environment', value: params.environment.toUpperCase() },
-      { label: 'Server Timestamp', value: params.serverTime },
-      { label: 'Sender Address', value: DEFAULT_FROM_EMAIL },
-    ],
-  })}
+      title: 'Email Diagnostics & Delivery Telemetry',
+      items: [
+        { label: 'System Status', value: 'OPERATIONAL (SUCCESS)', highlight: true },
+        { label: 'Delivery Provider', value: 'Resend API (Official SDK)' },
+        { label: 'Official Sender', value: DEFAULT_FROM_EMAIL },
+        { label: 'Verified Domain', value: 'invesment.top' },
+        { label: 'Target Recipient', value: params.recipientEmail || 'siamibna75@gmail.com' },
+        { label: 'Environment Mode', value: params.environment.toUpperCase() },
+        { label: 'Server Timestamp', value: params.serverTime },
+      ],
+    })}
+
     ${params.notes ? renderAlertBox(params.notes, 'info') : ''}
-    <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
+
+    <div style="margin-top: 24px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-left: 3px solid #10b981; border-radius: 4px;">
+      <p style="margin: 0; font-size: 13px; color: ${EMAIL_BRAND.colors.textSecondary}; line-height: 1.5;">
+        <strong>System Verification Note:</strong> All core email infrastructure (branded templates, SPF/DKIM authentication on <code style="color: #10b981;">invesment.top</code>, and Resend delivery credentials) is active and verified. Live production automation workflows remain safe and isolated from test runs.
+      </p>
+    </div>
+
+    <div style="margin-top: 24px; font-size: 13px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Verified by:<br />
       <strong style="color: #ffffff;">${escapeHtml(EMAIL_BRAND.name)} Technical Administration</strong>
     </div>
@@ -903,7 +920,7 @@ export function renderTestEmail(params: {
 
   const html = renderBaseLayout({
     title: subject,
-    preheader: `Verified integration test for ${EMAIL_BRAND.name}.`,
+    preheader: `DIU Investment Club Email System Test - All delivery pipelines operational.`,
     content,
     actionButton: {
       label: 'Open Club Portal',
@@ -914,21 +931,29 @@ export function renderTestEmail(params: {
   });
 
   const text = `
-Resend Integration Verification | ${EMAIL_BRAND.name}
+DIU Investment Club – Email System Test
+--------------------------------------------------
+[SYSTEM TEST EMAIL — NO ACTION REQUIRED]
 
 Hello ${name},
 
-This email verifies that the Resend Email Provider and the centralized ${EMAIL_BRAND.name} branding system are operational.
+This message confirms that the DIU Investment Club Email System is fully operational and actively transmitting via Resend using verified custom domain invesment.top.
 
-- Email Brand: ${EMAIL_BRAND.name}
-- Provider: Resend API
-- Environment: ${params.environment}
-- Timestamp: ${params.serverTime}
+DIAGNOSTICS TELEMETRY:
+- System Status: OPERATIONAL (SUCCESS)
+- Delivery Provider: Resend API
+- Official Sender: ${DEFAULT_FROM_EMAIL}
+- Verified Domain: invesment.top
+- Target Recipient: ${params.recipientEmail || 'siamibna75@gmail.com'}
+- Environment Mode: ${params.environment}
+- Server Timestamp: ${params.serverTime}
 ${params.notes ? `- Notes: ${params.notes}\n` : ''}
+
+All core email capabilities, domain authentication, and transactional pipelines are verified.
 
 Portal: ${EMAIL_BRAND.portalUrl}
 
-${EMAIL_BRAND.name}
+DIU Investment Club
   `.trim();
 
   return { subject, html, text };

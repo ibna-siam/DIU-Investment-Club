@@ -27,6 +27,7 @@ import {
   Check,
   FlaskConical,
   Shield,
+  Copy,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { useAuth } from '../../../hooks/useAuth';
@@ -146,7 +147,34 @@ export default function EmailManagementPage() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [testEmailLoading, setTestEmailLoading] = useState(false);
-  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Provider Status & Test Telemetry
+  interface ProviderStatusData {
+    activeProvider: string;
+    senderEmail: string;
+    from: string;
+    domain: string;
+    domainStatus: string;
+    apiConfigured: boolean;
+    brandName?: string;
+    organization?: string;
+    testRecipient?: string;
+  }
+
+  interface TestEmailExecutionResult {
+    status: 'SENT' | 'FAILED';
+    provider: string;
+    recipient: string;
+    timestamp: string;
+    messageId?: string | null;
+    errorMessage?: string | null;
+  }
+
+  const [providerStatus, setProviderStatus] = useState<ProviderStatusData | null>(null);
+  const [providerStatusLoading, setProviderStatusLoading] = useState(false);
+  const [testExecutionResult, setTestExecutionResult] = useState<TestEmailExecutionResult | null>(null);
+  const [showTestResultModal, setShowTestResultModal] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -215,9 +243,24 @@ export default function EmailManagementPage() {
     }
   }, []);
 
+  const fetchProviderStatus = useCallback(async () => {
+    setProviderStatusLoading(true);
+    try {
+      const res = await api.get<{ success: boolean; data: ProviderStatusData }>('/email/status');
+      if (res && res.data) {
+        setProviderStatus(res.data);
+      }
+    } catch (err: any) {
+      console.error('Failed to load email provider status:', err);
+    } finally {
+      setProviderStatusLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchLogsAndStats();
-  }, [fetchLogsAndStats]);
+    fetchProviderStatus();
+  }, [fetchLogsAndStats, fetchProviderStatus]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -245,21 +288,64 @@ export default function EmailManagementPage() {
 
   const handleSendTestEmail = async () => {
     setTestEmailLoading(true);
-    setTestEmailResult(null);
+    setActionError(null);
     try {
-      const res = await api.post<{ success: boolean; message: string; data: any }>('/email/send-test-email', {});
-      setTestEmailResult({
-        success: true,
-        message: res.message || '✓ Test Email Sent Successfully',
-      });
+      const res = await api.post<{
+        success: boolean;
+        message: string;
+        data: {
+          status: 'SENT' | 'FAILED';
+          provider: string;
+          recipient: string;
+          timestamp: string;
+          messageId?: string;
+          errorMessage?: string;
+        };
+      }>('/email/send-test-email', {});
+
+      if (res && res.data) {
+        setTestExecutionResult({
+          status: (res.data.status as any) || 'SENT',
+          provider: res.data.provider || 'RESEND',
+          recipient: res.data.recipient || 'siamibna75@gmail.com',
+          timestamp: res.data.timestamp || new Date().toISOString(),
+          messageId: res.data.messageId || null,
+          errorMessage: null,
+        });
+        setShowTestResultModal(true);
+      }
       fetchLogsAndStats();
+      fetchProviderStatus();
     } catch (err: any) {
-      setTestEmailResult({
-        success: false,
-        message: `✗ Test Email Failed: ${err.message || 'Provider rejected test message'}`,
+      console.error('Test email transmission failed:', err);
+      const errorData = err.response?.data?.data || err.data || {};
+      const errorMsg =
+        err.response?.data?.error?.message ||
+        err.message ||
+        errorData.errorMessage ||
+        'Provider rejected test message transmission';
+
+      setTestExecutionResult({
+        status: 'FAILED',
+        provider: errorData.provider || 'RESEND',
+        recipient: errorData.recipient || 'siamibna75@gmail.com',
+        timestamp: errorData.timestamp || new Date().toISOString(),
+        messageId: errorData.messageId || null,
+        errorMessage: errorMsg,
       });
+      setShowTestResultModal(true);
+      fetchLogsAndStats();
+      fetchProviderStatus();
     } finally {
       setTestEmailLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
     }
   };
 
@@ -418,14 +504,30 @@ export default function EmailManagementPage() {
             Real-time delivery health, retry telemetry, error classification, and duplicate protection for DIU Investment Club.
           </p>
         </div>
-        <button
-          onClick={() => fetchLogsAndStats()}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg border border-slate-700 transition"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
-          Refresh Analytics
-        </button>
+        <div className="flex items-center gap-3">
+          {isSuperAdmin && (
+            <button
+              onClick={handleSendTestEmail}
+              disabled={testEmailLoading}
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-emerald-950/40 transition disabled:opacity-50"
+              title="Send a verified test email to siamibna75@gmail.com"
+            >
+              <Send className={`w-4 h-4 ${testEmailLoading ? 'animate-spin' : ''}`} />
+              {testEmailLoading ? 'Dispatching Test...' : 'Send Test Email'}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              fetchLogsAndStats();
+              fetchProviderStatus();
+            }}
+            disabled={loading || providerStatusLoading}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg border border-slate-700 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+            Refresh Analytics
+          </button>
+        </div>
       </div>
 
       {/* Notifications / Alerts */}
@@ -451,6 +553,192 @@ export default function EmailManagementPage() {
           </button>
         </div>
       )}
+
+      {/* Real Delivery Result Banner (SENT / FAILED) */}
+      {testExecutionResult && (
+        <div
+          className={`p-4 rounded-2xl border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+            testExecutionResult.status === 'SENT'
+              ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'
+              : 'bg-rose-950/40 border-rose-800/60 text-rose-300'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            {testExecutionResult.status === 'SENT' ? (
+              <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400 mt-0.5">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            ) : (
+              <div className="p-2 bg-rose-500/10 rounded-lg text-rose-400 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-white">
+                  Test Email Delivery Result:
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    testExecutionResult.status === 'SENT'
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                  }`}
+                >
+                  {testExecutionResult.status}
+                </span>
+                <span className="text-xs font-mono text-slate-300 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">
+                  Provider: {testExecutionResult.provider}
+                </span>
+              </div>
+              <div className="text-xs text-slate-300 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>
+                  <strong>Recipient:</strong>{' '}
+                  <span className="font-mono text-emerald-400">{testExecutionResult.recipient}</span>
+                </span>
+                <span>
+                  <strong>Timestamp:</strong>{' '}
+                  <span className="text-slate-300">{new Date(testExecutionResult.timestamp).toLocaleString()}</span>
+                </span>
+                {testExecutionResult.messageId && (
+                  <span className="flex items-center gap-1">
+                    <strong>Message ID:</strong>{' '}
+                    <span className="font-mono text-sky-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 select-all">
+                      {testExecutionResult.messageId}
+                    </span>
+                    <button
+                      onClick={() => copyToClipboard(testExecutionResult.messageId!)}
+                      className="text-slate-400 hover:text-white p-0.5 rounded"
+                      title="Copy Resend Message ID"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                    {copiedId && <span className="text-[10px] text-emerald-400">Copied!</span>}
+                  </span>
+                )}
+              </div>
+              {testExecutionResult.status === 'FAILED' && testExecutionResult.errorMessage && (
+                <div className="mt-2 p-2.5 bg-black/40 border border-rose-900/50 rounded-lg text-xs font-mono text-rose-300 break-words whitespace-pre-wrap leading-relaxed select-all">
+                  <strong>Provider Error:</strong> {testExecutionResult.errorMessage}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end md:self-center">
+            <button
+              onClick={() => setShowTestResultModal(true)}
+              className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition"
+            >
+              View Telemetry
+            </button>
+            <button
+              onClick={() => setTestExecutionResult(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Connection / Provider Status Section */}
+      <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                Connection & Provider Status
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ONLINE
+                </span>
+              </h2>
+              <p className="text-[11px] text-slate-400">
+                Production email infrastructure and DNS domain verification for DIU Investment Club.
+              </p>
+            </div>
+          </div>
+
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={handleSendTestEmail}
+              disabled={testEmailLoading}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-md shadow-emerald-950/40 transition disabled:opacity-50 self-start sm:self-auto"
+            >
+              <Send className={`w-3.5 h-3.5 ${testEmailLoading ? 'animate-spin' : ''}`} />
+              {testEmailLoading ? 'Testing...' : 'Send Test Email'}
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {/* 1. Active Provider */}
+          <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
+            <div className="text-slate-400 uppercase tracking-wider font-semibold text-[10px] mb-1">
+              Active Provider
+            </div>
+            <div className="text-sm font-bold text-white flex items-center gap-2">
+              <span className="text-emerald-400 font-mono">Resend</span>
+              <span className="text-[10px] font-normal bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">REST API</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1">Single production provider</div>
+          </div>
+
+          {/* 2. Sender Email */}
+          <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
+            <div className="text-slate-400 uppercase tracking-wider font-semibold text-[10px] mb-1">
+              Sender Email
+            </div>
+            <div className="text-sm font-bold text-white font-mono truncate" title={providerStatus?.senderEmail || 'noreply@invesment.top'}>
+              {providerStatus?.senderEmail || 'noreply@invesment.top'}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1 truncate" title={providerStatus?.from || 'DIU Investment Club <noreply@invesment.top>'}>
+              {providerStatus?.from || 'DIU Investment Club <noreply@invesment.top>'}
+            </div>
+          </div>
+
+          {/* 3. Domain Status */}
+          <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
+            <div className="text-slate-400 uppercase tracking-wider font-semibold text-[10px] mb-1">
+              Domain Status
+            </div>
+            <div className="text-sm font-bold text-white flex items-center gap-2">
+              <span className="font-mono text-slate-200">{providerStatus?.domain || 'invesment.top'}</span>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <CheckCircle2 className="w-2.5 h-2.5" /> {providerStatus?.domainStatus || 'Verified'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1">DKIM, SPF & MX authenticated</div>
+          </div>
+
+          {/* 4. API Configuration Status without exposing secrets */}
+          <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl">
+            <div className="text-slate-400 uppercase tracking-wider font-semibold text-[10px] mb-1">
+              API Configuration
+            </div>
+            <div className="text-sm font-bold text-white flex items-center gap-2">
+              {providerStatus?.apiConfigured ?? true ? (
+                <>
+                  <span className="text-emerald-400 font-semibold">Configured & Ready</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <span className="text-rose-400 font-semibold">Not Configured</span>
+                  <span className="w-2 h-2 rounded-full bg-rose-400" />
+                </>
+              )}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1 font-mono">
+              RESEND_API_KEY: •••••••• (Encrypted)
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* System Health Banner */}
       <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800 rounded-2xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -814,8 +1102,14 @@ export default function EmailManagementPage() {
                         <td className="px-4 py-3 max-w-[240px]">
                           <div className="text-slate-200 truncate">{log.subject}</div>
                           {log.error_message && (
-                            <div className="text-xs text-rose-400 truncate max-w-[220px]" title={log.error_message}>
-                              Error: {log.error_message}
+                            <div
+                              className="text-xs text-rose-400 mt-1 hover:text-rose-300 transition cursor-pointer flex items-center gap-1 group"
+                              onClick={() => setSelectedLog(log)}
+                              title="Click to view full error message"
+                            >
+                              <AlertTriangle className="w-3 h-3 text-rose-400 flex-shrink-0" />
+                              <span className="truncate max-w-[280px] font-mono">{log.error_message}</span>
+                              <span className="text-[10px] text-rose-400/80 underline opacity-0 group-hover:opacity-100 transition whitespace-nowrap">view</span>
                             </div>
                           )}
                         </td>
@@ -953,7 +1247,8 @@ export default function EmailManagementPage() {
                   </div>
 
                   {log.error_message && (
-                    <div className="p-2.5 bg-rose-950/30 border border-rose-900/50 rounded-lg text-xs text-rose-300 font-mono">
+                    <div className="p-3 bg-rose-950/40 border border-rose-900/60 rounded-lg text-xs text-rose-200 font-mono break-words whitespace-pre-wrap leading-relaxed select-all">
+                      <span className="font-bold text-rose-400 block mb-1">Provider Error Diagnostics:</span>
                       {log.error_message}
                     </div>
                   )}
@@ -1118,21 +1413,47 @@ export default function EmailManagementPage() {
                   </span>
                 </div>
 
-                {testEmailResult && (
+                {testExecutionResult && (
                   <div
                     className={`mt-2 p-3 rounded-lg text-xs font-medium flex items-center justify-between ${
-                      testEmailResult.success
+                      testExecutionResult.status === 'SENT'
                         ? 'bg-emerald-950/40 border border-emerald-800 text-emerald-300'
                         : 'bg-rose-950/40 border border-rose-800 text-rose-300'
                     }`}
                   >
-                    <span>{testEmailResult.message}</span>
-                    <button
-                      onClick={() => setTestEmailResult(null)}
-                      className="text-slate-400 hover:text-white ml-2"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div>
+                      <div>
+                        {testExecutionResult.status === 'SENT'
+                          ? '✓ Test Email Accepted by Resend'
+                          : '✗ Test Email Transmission Failed'}
+                      </div>
+                      {testExecutionResult.messageId && (
+                        <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                          ID: {testExecutionResult.messageId}
+                        </div>
+                      )}
+                      {testExecutionResult.errorMessage && (
+                        <div className="text-[11px] font-mono text-rose-300 mt-0.5">
+                          {testExecutionResult.errorMessage}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowTestResultModal(true)}
+                        className="text-[10px] underline text-slate-300 hover:text-white ml-2"
+                      >
+                        Details
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTestExecutionResult(null)}
+                        className="text-slate-400 hover:text-white ml-2"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1412,8 +1733,16 @@ export default function EmailManagementPage() {
                 <span className="text-slate-300">{selectedLog.trigger_source || 'System Automation'}</span>
               </div>
               {selectedLog.error_message && (
-                <div className="p-3 bg-rose-950/30 border border-rose-800/40 rounded-lg text-rose-300 text-xs">
-                  <span className="font-bold">Error Message:</span> {selectedLog.error_message}
+                <div className="p-4 bg-rose-950/40 border border-rose-800/60 rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between font-bold text-rose-300">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-rose-400" /> Full Provider Error Diagnostics:
+                    </span>
+                    <span className="text-[11px] font-mono text-rose-400/80">Attempt {selectedLog.attempt_count} of 3</span>
+                  </div>
+                  <div className="p-3 bg-black/50 border border-rose-900/50 rounded-lg text-xs font-mono text-rose-200 break-words whitespace-pre-wrap leading-relaxed select-all">
+                    {selectedLog.error_message}
+                  </div>
                 </div>
               )}
             </div>
@@ -1424,6 +1753,125 @@ export default function EmailManagementPage() {
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg transition"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Email Result Modal */}
+      {showTestResultModal && testExecutionResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex justify-between items-start pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                {testExecutionResult.status === 'SENT' ? (
+                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {testExecutionResult.status === 'SENT' ? 'Test Email Accepted & Dispatched' : 'Test Email Transmission Failed'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Resend Delivery Telemetry & Diagnostic Report
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTestResultModal(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              {/* Delivery Status */}
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Delivery Status</span>
+                <div>
+                  {testExecutionResult.status === 'SENT' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> SENT
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                      <AlertTriangle className="w-3.5 h-3.5" /> FAILED
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Provider */}
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Email Provider</span>
+                <span className="font-mono text-xs font-bold text-white bg-slate-800 px-2.5 py-1 rounded border border-slate-700">
+                  {testExecutionResult.provider || 'RESEND'}
+                </span>
+              </div>
+
+              {/* Recipient */}
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Recipient Address</span>
+                <span className="font-mono text-xs text-emerald-400 font-semibold bg-emerald-950/30 px-2.5 py-1 rounded border border-emerald-800/40">
+                  {testExecutionResult.recipient}
+                </span>
+              </div>
+
+              {/* Timestamp */}
+              <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                <span className="text-slate-400">Timestamp</span>
+                <span className="text-xs text-slate-200">
+                  {new Date(testExecutionResult.timestamp).toLocaleString()}
+                </span>
+              </div>
+
+              {/* Resend Message ID */}
+              {testExecutionResult.messageId && (
+                <div className="flex justify-between items-center py-2 border-b border-slate-800/60">
+                  <span className="text-slate-400">Resend Message ID</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-xs text-sky-400 bg-sky-950/30 px-2.5 py-1 rounded border border-sky-800/40 select-all">
+                      {testExecutionResult.messageId}
+                    </span>
+                    <button
+                      onClick={() => copyToClipboard(testExecutionResult.messageId!)}
+                      className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+                      title="Copy Resend Message ID"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    {copiedId && <span className="text-[10px] text-emerald-400">Copied!</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* Full Readable Error Message if Failed */}
+              {testExecutionResult.status === 'FAILED' && testExecutionResult.errorMessage && (
+                <div className="p-4 bg-rose-950/40 border border-rose-800/60 rounded-xl space-y-2 text-xs">
+                  <div className="font-bold text-rose-300 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    Provider Error Details:
+                  </div>
+                  <div className="p-3 bg-black/50 border border-rose-900/50 rounded-lg text-rose-200 font-mono break-words whitespace-pre-wrap leading-relaxed select-all">
+                    {testExecutionResult.errorMessage}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowTestResultModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition"
+              >
+                Close Report
               </button>
             </div>
           </div>

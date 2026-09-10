@@ -90,7 +90,7 @@ export class ResendEmailProvider implements IEmailProvider {
         errorCategory: 'INVALID_RECIPIENT',
         isRetryable: false,
         statusCode: 422,
-        safeMessage: 'Recipient email address format is invalid or unroutable.',
+        safeMessage: safeMessage || 'Recipient email address format is invalid or unroutable.',
       };
     }
 
@@ -107,7 +107,7 @@ export class ResendEmailProvider implements IEmailProvider {
         errorCategory: 'PROVIDER_AUTH_ERROR',
         isRetryable: false,
         statusCode,
-        safeMessage: 'Resend API authentication failed. Verify RESEND_API_KEY configuration.',
+        safeMessage: safeMessage ? `Resend API authentication error: ${safeMessage}` : 'Resend API authentication failed. Verify RESEND_API_KEY configuration.',
       };
     }
 
@@ -122,7 +122,7 @@ export class ResendEmailProvider implements IEmailProvider {
         errorCategory: 'INVALID_SENDER',
         isRetryable: false,
         statusCode: 400,
-        safeMessage: 'Sender domain unverified or rejected by provider policy.',
+        safeMessage: safeMessage ? `Resend sender domain error: ${safeMessage}` : 'Sender domain unverified or rejected by provider policy.',
       };
     }
 
