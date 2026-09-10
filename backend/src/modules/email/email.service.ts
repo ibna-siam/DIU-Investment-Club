@@ -31,7 +31,7 @@ import {
   renderTestEmail,
 } from './email.templates';
 
-import { emailProviderManager, emailProviderFactory } from './providers/provider.factory';
+import { emailProvider, emailProviderManager } from './email.provider';
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -46,7 +46,7 @@ export interface SendEmailOptions {
   idempotencyKey?: string;
   relatedEntityType?: string;
   relatedEntityId?: string;
-  providerName?: 'RESEND' | 'SMTP';
+  providerName?: 'RESEND';
 }
 
 export interface EmailSendResult {
@@ -55,7 +55,7 @@ export interface EmailSendResult {
   error?: string;
   recipient: string | string[];
   sentAt: string;
-  provider?: 'RESEND' | 'SMTP';
+  provider?: 'RESEND';
   statusCode?: number;
 }
 
@@ -69,7 +69,7 @@ export class EmailService {
     const emailType = options.emailType || 'TRANSACTIONAL';
     const triggerSource = options.triggerSource || 'SYSTEM';
 
-    const provider = emailProviderManager.getProvider(options.providerName);
+    const provider = emailProvider;
 
     if (!provider.isConfigured()) {
       console.warn(`⚠️ [EmailService] Provider ${provider.name} is not configured. Email sending skipped.`);

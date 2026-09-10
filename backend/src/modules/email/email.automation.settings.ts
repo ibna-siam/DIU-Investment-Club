@@ -58,8 +58,10 @@ export class EmailAutomationManager {
    */
   public refreshFromSettingsRepository(): void {
     try {
-      const mode = settingsRepository.getSync('email_environment_mode', DEFAULT_SETTINGS.environmentMode);
-      const testEmail = settingsRepository.getSync('email_test_recipient', DEFAULT_SETTINGS.testRecipientEmail);
+      const defaultMode = (process.env.EMAIL_MODE || DEFAULT_SETTINGS.environmentMode).trim().toUpperCase();
+      const mode = settingsRepository.getSync('email_environment_mode', defaultMode);
+      const defaultTestEmail = process.env.RESEND_TEST_RECIPIENT || DEFAULT_SETTINGS.testRecipientEmail;
+      const testEmail = settingsRepository.getSync('email_test_recipient', defaultTestEmail);
       const memberWelcome = settingsRepository.getSync('auto_member_welcome_enabled', DEFAULT_SETTINGS.rules.newMemberWelcome);
       const expenseApproval = settingsRepository.getSync('auto_expense_approval_enabled', DEFAULT_SETTINGS.rules.expenseApproval);
       const taskAssignment = settingsRepository.getSync('auto_task_assignment_enabled', DEFAULT_SETTINGS.rules.taskAssignment);

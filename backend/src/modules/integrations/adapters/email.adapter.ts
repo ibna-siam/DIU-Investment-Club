@@ -41,24 +41,50 @@ export class ConsoleEmailAdapter implements IEmailAdapter {
   }
 }
 
-export class SmtpEmailAdapter implements IEmailAdapter {
-  name = 'SMTP Email Adapter';
+export class ResendEmailAdapter implements IEmailAdapter {
+  name = 'Resend Email Adapter';
   private config: any;
 
-  constructor(config: any) {
+  constructor(config?: any) {
     this.config = config;
   }
 
   async send(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
     const startTime = Date.now();
-    // If SMTP host not provided, fallback to safe logged dispatch
-    if (!this.config?.smtp_host || !this.config?.smtp_user) {
-      const fallback = new ConsoleEmailAdapter();
-      return fallback.send(options);
-    }
+    try {
+      const { emailProvider } = await import('../../email/email.provider');
+      const result = await emailProvider.send({
+        to: options.to,
+        subject: options.subject,
+        html: options.html || options.text || '',
+        text: options.text,
+        from: options.from,
+      });
 
-    // In a real environment with nodemailer installed and configured:
-    const duration = Date.now() - startTime;
-    return { success: true, messageId: `smtp_${Date.now()}` };
+      const duration = Date.now() - startTime;
+      if (isSupabaseConfigured() && supabaseClient) {
+        await supabaseClient.from('integration_logs').insert({
+          provider_type: 'EMAIL',
+          provider_name: this.name,
+          direction: 'OUTBOUND',
+          endpoint_or_action: 'send_email',
+          status_code: result.statusCode || (result.success ? 200 : 500),
+          execution_time_ms: duration,
+          payload_summary: `To: ${options.to}, Subject: ${options.subject}`,
+          error_details: result.error || null,
+        });
+      }
+
+      return {
+        success: result.success,
+        messageId: result.id,
+        error: result.error,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err?.message || 'Resend transmission failed',
+      };
+    }
   }
 }

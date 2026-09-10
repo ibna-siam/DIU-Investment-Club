@@ -13,20 +13,11 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   JWT_SECRET: z.string().default('diu_investment_club_super_secure_secret_token_2026_key'),
   RESEND_API_KEY: z.string().optional(),
-  RESEND_FROM_EMAIL: z.string().default('DIU Investment Club <onboarding@resend.dev>'),
-  RESEND_TEST_RECIPIENT: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().default('DIU Investment Club <noreply@investmentclub.top>'),
+  RESEND_TEST_RECIPIENT: z.string().optional().default('siamibna75@gmail.com'),
   ADMIN_EMAIL: z.string().optional().default('admin@diu.edu.bd'),
-  EMAIL_PROVIDER: z.string().optional().default('SMTP').transform((v) => {
-    const norm = (v || 'SMTP').trim().toUpperCase();
-    return norm === 'RESEND' ? 'RESEND' : 'SMTP';
-  }),
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.string().optional().default('587').transform((v) => parseInt(v, 10)),
-  SMTP_SECURE: z.string().optional().default('false').transform((v) => v === 'true'),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM_EMAIL: z.string().optional(),
-  SMTP_FROM_NAME: z.string().optional().default('DIU Investment Club'),
+  EMAIL_PROVIDER: z.string().optional().default('resend').transform((v) => (v || 'resend').trim().toLowerCase()),
+  EMAIL_MODE: z.enum(['LIVE', 'TEST']).default('LIVE'),
 });
 
 const parsed = envSchema.safeParse(process.env);

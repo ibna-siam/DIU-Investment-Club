@@ -52,7 +52,7 @@ import { emailPreferencesManager, EmailCategory } from './email.preferences';
 import { isValidEmail } from './email.security';
 import { emailAutomationManager } from './email.automation.settings';
 import { EMAIL_BRAND } from './email.brand';
-import { emailProviderManager, emailProviderFactory } from './providers/provider.factory';
+import { emailProvider } from './email.provider';
 
 const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@diu.edu.bd';
 
@@ -291,8 +291,8 @@ export class EmailQueue {
       return { success: false, error: 'User opted out' };
     }
 
-    // 2B. Provider Resolution: Gmail SMTP is the PRIMARY provider for all live transactional emails
-    const provider = emailProviderManager.getProvider();
+    // 2B. Provider Resolution: Resend is the SINGLE and exclusive provider for all transactional emails
+    const provider = emailProvider;
 
     // 3. Create or reuse Log Record in PROCESSING state (Section 10)
     let logRecord = existing;

@@ -9,7 +9,7 @@ import { DEFAULT_FROM_EMAIL } from './email.config';
 import { isValidEmail } from './email.security';
 import { emailAutomationManager } from './email.automation.settings';
 import { EMAIL_BRAND } from './email.brand';
-import { emailProviderManager } from './providers/email.provider.manager';
+import { emailProvider, emailProviderManager } from './email.provider';
 
 export class EmailController {
   /**
@@ -18,24 +18,19 @@ export class EmailController {
    */
   async getStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const activeProvider = emailProviderManager.getActiveProviderName();
-      const primary = emailProviderManager.getPrimaryProvider();
+      const configured = emailProvider.isConfigured();
       res.json({
         success: true,
         data: {
-          provider: activeProvider,
-          primaryProvider: activeProvider,
+          provider: 'RESEND',
+          primaryProvider: 'RESEND',
           brandName: EMAIL_BRAND.name,
           organization: EMAIL_BRAND.organizationName,
-          configured: primary.isConfigured(),
-          smtpConfigured: emailProviderManager.isSmtpConfigured(),
-          resendConfigured: emailProviderManager.isResendConfigured(),
-          from:
-            activeProvider === 'SMTP'
-              ? `${EMAIL_BRAND.name} <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`
-              : DEFAULT_FROM_EMAIL,
+          configured,
+          resendConfigured: configured,
+          from: DEFAULT_FROM_EMAIL,
           environment: process.env.NODE_ENV || 'development',
-          sandboxMode: activeProvider === 'RESEND' && !process.env.RESEND_DOMAIN_VERIFIED,
+          sandboxMode: false,
           supportEmail: EMAIL_BRAND.supportEmail,
         },
       });
@@ -514,9 +509,9 @@ export class EmailController {
             supportEmail: EMAIL_BRAND.supportEmail,
           },
           provider: {
-            name: emailProviderManager.getActiveProviderName(),
-            configured: emailProviderManager.getPrimaryProvider().isConfigured(),
-            mode: emailProviderManager.getActiveProviderName() === 'SMTP' ? 'PRODUCTION' : (process.env.RESEND_DOMAIN_VERIFIED ? 'PRODUCTION' : 'SANDBOX'),
+            name: 'RESEND',
+            configured: emailProvider.isConfigured(),
+            mode: 'PRODUCTION',
           },
           timestamp: new Date().toISOString(),
         },
@@ -612,8 +607,8 @@ export class EmailController {
    */
   async sendManualTestEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const primary = emailProviderManager.getPrimaryProvider();
-      if (!primary.isConfigured() && !emailProviderManager.getResendProvider().isConfigured()) {
+      const primary = emailProvider;
+      if (!primary.isConfigured()) {
         res.status(503).json({
           success: false,
           error: {

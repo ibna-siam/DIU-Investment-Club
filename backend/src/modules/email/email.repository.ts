@@ -17,7 +17,7 @@ export interface EmailLogRecord {
   related_entity_id?: string | null;
   trigger_source?: string | null;
   provider_message_id?: string | null;
-  provider?: 'RESEND' | 'SMTP' | null;
+  provider?: 'RESEND' | null;
   provider_status_code?: number | null;
   error_category?: string | null;
   status: 'PENDING' | 'SENT' | 'FAILED' | 'RETRYING' | 'SKIPPED' | 'CANCELLED' | 'TEST';
@@ -33,10 +33,11 @@ export interface CreateEmailLogInput {
   recipient: string;
   subject: string;
   related_entity_type?: string;
+  relatedEntityId?: string;
   related_entity_id?: string;
   trigger_source?: string;
   provider_message_id?: string;
-  provider?: 'RESEND' | 'SMTP';
+  provider?: 'RESEND';
   provider_status_code?: number;
   error_category?: string;
   status?: 'PENDING' | 'SENT' | 'FAILED' | 'RETRYING' | 'SKIPPED' | 'CANCELLED' | 'TEST';

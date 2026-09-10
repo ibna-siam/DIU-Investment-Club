@@ -4,12 +4,8 @@ import { env } from '../../config/env';
 /**
  * Resend Email Service Configuration
  *
- * NOTE FOR DEVELOPMENT / DOMAIN-LESS USAGE:
- * When sending without a custom domain, Resend requires:
- * 1. The sender address MUST use the sandbox domain: 'onboarding@resend.dev'
- *    (e.g., 'DIU Investment Club <onboarding@resend.dev>')
- * 2. In testing mode, emails can only be delivered to the account owner's registered email
- *    or 'delivered@resend.dev'.
+ * Production Verified Domain: investmentclub.top
+ * Sender Identity: DIU Investment Club <noreply@investmentclub.top>
  */
 
 export const isResendConfigured = (): boolean => {
@@ -30,7 +26,7 @@ export const getResendClient = (): Resend => {
   return resendInstance;
 };
 
-export const DEFAULT_FROM_EMAIL = env.RESEND_FROM_EMAIL || 'DIU Investment Club <onboarding@resend.dev>';
+export const DEFAULT_FROM_EMAIL = env.RESEND_FROM_EMAIL || 'DIU Investment Club <noreply@investmentclub.top>';
 export const DEFAULT_ADMIN_EMAIL = env.ADMIN_EMAIL || 'admin@diu.edu.bd';
-export const DEFAULT_TEST_RECIPIENT = env.RESEND_TEST_RECIPIENT || '';
+export const DEFAULT_TEST_RECIPIENT = env.RESEND_TEST_RECIPIENT || 'siamibna75@gmail.com';
 
