@@ -56,6 +56,57 @@ import settingsRoutes from './modules/settings/settings.routes';
 import emailRoutes from './modules/email/email.routes';
 import { errorHandler } from './middleware/error.middleware';
 
+// Approved static production & development origins
+const STATIC_ALLOWED_ORIGINS = new Set([
+  'https://investmentclub.top',
+  'https://www.investmentclub.top',
+  'https://diu-investment-club.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]);
+
+// Helper to parse comma-separated CLIENT_URL values from env
+const getCustomClientOrigins = (): string[] => {
+  if (!env.CLIENT_URL) return [];
+  return env.CLIENT_URL.split(',')
+    .map((url) => url.trim().replace(/\/+$/, ''))
+    .filter((url) => url.length > 0);
+};
+
+// Regex to safely validate Vercel preview deployments (e.g. https://diu-investment-club-xyz.vercel.app)
+const VERCEL_PREVIEW_REGEX = /^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/;
+
+const corsOriginValidator = (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void
+) => {
+  // Allow requests with no origin (mobile applications, server-to-server curl, health checks, cron)
+  if (!origin) {
+    return callback(null, true);
+  }
+
+  const normalized = origin.trim().replace(/\/+$/, '');
+
+  // 1. Check statically whitelisted production & development origins
+  if (STATIC_ALLOWED_ORIGINS.has(normalized)) {
+    return callback(null, true);
+  }
+
+  // 2. Check dynamic origins defined in CLIENT_URL (comma-separated list)
+  const customOrigins = getCustomClientOrigins();
+  if (customOrigins.includes(normalized)) {
+    return callback(null, true);
+  }
+
+  // 3. Check Vercel preview deployments
+  if (VERCEL_PREVIEW_REGEX.test(normalized)) {
+    return callback(null, true);
+  }
+
+  // Unknown origin: reject safely without setting CORS headers
+  return callback(null, false);
+};
+
 export const createApp = (): Express => {
   const app = express();
 
@@ -63,10 +114,12 @@ export const createApp = (): Express => {
   app.use(helmet());
   app.use(
     cors({
-      origin: [env.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+      origin: corsOriginValidator,
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Idempotency-Key'],
+      exposedHeaders: ['Content-Disposition'],
+      maxAge: 86400, // 24 hours preflight cache
     })
   );
 
