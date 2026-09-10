@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../../lib/api';
 import { ArrowLeft, Wallet, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CreateAccountPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -25,6 +26,9 @@ export default function CreateAccountPage() {
       return api.post('/accounts', data);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financial-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-flow-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       router.push('/accounts');
     },
     onError: (err: any) => {

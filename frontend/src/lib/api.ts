@@ -55,11 +55,28 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       }
 
       const errorData = data.error || {};
+      let message = errorData.message || data.message;
+      if (!message) {
+        if (response.status === 401) {
+          message = 'Session expired. Please log in again.';
+        } else if (response.status === 403) {
+          message = 'You do not have permission for this action.';
+        } else if (response.status === 404) {
+          message = 'Requested resource not found.';
+        } else if (response.status >= 502 && response.status <= 504) {
+          message = 'Server temporarily unavailable. Please try again later.';
+        } else if (response.status >= 500) {
+          message = 'Server or database operation failed. Please try again.';
+        } else {
+          message = 'An error occurred while processing request';
+        }
+      }
+
       throw new ApiError(
-        errorData.message || 'An error occurred while processing request',
-        errorData.code || 'HTTP_ERROR',
+        message,
+        errorData.code || data.code || `HTTP_${response.status}`,
         response.status,
-        errorData.details
+        errorData.details || data.details
       );
     }
 

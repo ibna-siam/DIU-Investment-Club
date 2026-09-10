@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../../lib/api';
 import { ExpenseCategory, FinancialAccount } from '../../../../types/financial';
 import { formatBDT } from '../../../../lib/formatters';
@@ -11,6 +11,7 @@ import Link from 'next/link';
 
 export default function CreateExpensePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -50,6 +51,11 @@ export default function CreateExpensePage() {
       return api.post('/expenses', data);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-accounts-active'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-flow-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       router.push('/expenses');
     },
     onError: (err: any) => {

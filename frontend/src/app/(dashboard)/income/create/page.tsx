@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../../lib/api';
 import { IncomeCategory, FinancialAccount } from '../../../../types/financial';
 import { ArrowLeft, TrendingUp, ShieldAlert, CheckCircle2 } from 'lucide-react';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 
 export default function CreateIncomePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -46,6 +47,11 @@ export default function CreateIncomePage() {
       return api.post('/income', data);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incomes'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-accounts-active'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-flow-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       router.push('/income');
     },
     onError: (err: any) => {
