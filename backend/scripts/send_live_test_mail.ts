@@ -24,7 +24,7 @@ async function main() {
   const result = await emailService.sendTestEmail({
     to: testRecipient,
     recipientName: 'Ibna Siam',
-    notes: 'Official live transmission test from verified domain invesment.top via Resend API.',
+    notes: 'Official live transmission test from verified domain invesmentclub.top via Resend API.',
   });
 
   console.log('\nTransmission Result:');

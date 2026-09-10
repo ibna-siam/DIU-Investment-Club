@@ -3,9 +3,9 @@
  * DIU Investment Club ERP
  *
  * Verifies:
- * 1. Sender identity is strictly: DIU Investment Club <noreply@invesment.top>
+ * 1. Sender identity is strictly: DIU Investment Club <noreply@invesmentclub.top>
  * 2. Active Provider is Resend
- * 3. Domain is invesment.top (no incorrect references to investmentclub.top)
+ * 3. Domain is invesmentclub.top
  * 4. Test Email Template has subject: "DIU Investment Club – Email System Test"
  * 5. Performs live dispatch to siamibna75@gmail.com via Resend
  * 6. Captures and reports:
@@ -29,14 +29,14 @@ import { emailService } from '../src/modules/email/email.service';
 async function main() {
   console.log('========================================================================');
   console.log('📧 EMAIL TESTING & DIAGNOSTICS SYSTEM VERIFICATION');
-  console.log('   Official Domain: invesment.top');
-  console.log('   Sender: DIU Investment Club <noreply@invesment.top>');
+  console.log('   Official Domain: invesmentclub.top');
+  console.log('   Sender: DIU Investment Club <noreply@invesmentclub.top>');
   console.log('========================================================================\n');
 
   // Check 1: Sender identity
   console.log('1. Checking Sender Email Identity...');
   console.log(`   Configured DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL}"`);
-  const senderMatches = DEFAULT_FROM_EMAIL === 'DIU Investment Club <noreply@invesment.top>';
+  const senderMatches = DEFAULT_FROM_EMAIL === 'DIU Investment Club <noreply@invesmentclub.top>';
   console.log(`   Matches official sender: ${senderMatches ? 'YES ✅' : 'NO ❌'}`);
 
   // Check 2: No investmentclub.top
@@ -62,7 +62,7 @@ async function main() {
   console.log(`   Subject: "${rendered.subject}"`);
   const subjectCorrect = rendered.subject === 'DIU Investment Club – Email System Test';
   console.log(`   Subject exact match: ${subjectCorrect ? 'YES ✅' : 'NO ❌'}`);
-  const hasBranding = rendered.html.includes('DIU Investment Club') && rendered.html.includes('invesment.top');
+  const hasBranding = rendered.html.includes('DIU Investment Club') && rendered.html.includes('invesmentclub.top');
   console.log(`   HTML contains branding & domain: ${hasBranding ? 'YES ✅' : 'NO ❌'}`);
 
   // Check 5: Live Transmission Test

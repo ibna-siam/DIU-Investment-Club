@@ -3,7 +3,7 @@
  *
  * Comprehensive audit & verification of the production email system:
  * 1. Resend client authenticates successfully
- * 2. Verified sender domain (noreply@invesment.top) is used
+ * 2. Verified sender domain (noreply@invesmentclub.top) is used
  * 3. New Member Welcome Email goes only to member.email
  * 4. New Member does NOT receive account activation link
  * 5. New System User receives Welcome Email

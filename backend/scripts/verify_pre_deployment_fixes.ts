@@ -143,8 +143,8 @@ async function runPreDeploymentVerification() {
   console.log('\n--- 3. PRODUCTION CORS ORIGIN VALIDATION ---');
 
   const STATIC_ALLOWED_ORIGINS = new Set([
-    'https://invesment.top',
-    'https://www.invesment.top',
+    'https://invesmentclub.top',
+    'https://www.invesmentclub.top',
     'https://diu-investment-club.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
@@ -160,12 +160,12 @@ async function runPreDeploymentVerification() {
     return false;
   };
 
-  test('Allows production domain https://invesment.top', () => {
-    assert.strictEqual(validateOrigin('https://invesment.top'), true);
+  test('Allows production domain https://invesmentclub.top', () => {
+    assert.strictEqual(validateOrigin('https://invesmentclub.top'), true);
   });
 
-  test('Allows production domain https://www.invesment.top', () => {
-    assert.strictEqual(validateOrigin('https://www.invesment.top'), true);
+  test('Allows production domain https://www.invesmentclub.top', () => {
+    assert.strictEqual(validateOrigin('https://www.invesmentclub.top'), true);
   });
 
   test('Allows current Vercel production https://diu-investment-club.vercel.app', () => {
@@ -205,8 +205,8 @@ async function runPreDeploymentVerification() {
     assert.strictEqual(emailProvider.name, 'RESEND');
   });
 
-  test('Sender identity is "DIU Investment Club <noreply@invesment.top>"', () => {
-    assert.strictEqual(DEFAULT_FROM_EMAIL, 'DIU Investment Club <noreply@invesment.top>');
+  test('Sender identity is "DIU Investment Club <noreply@invesmentclub.top>"', () => {
+    assert.strictEqual(DEFAULT_FROM_EMAIL, 'DIU Investment Club <noreply@invesmentclub.top>');
   });
 
   test('Environment mode is configured as LIVE', () => {
