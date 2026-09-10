@@ -61,8 +61,6 @@ const STATIC_ALLOWED_ORIGINS = new Set([
   'https://invesmentclub.top',
   'https://www.invesmentclub.top',
   'https://api.invesmentclub.top',
-  'https://invesment.top',
-  'https://www.invesment.top',
   'https://diu-investment-club.vercel.app',
   'https://diu-investment-club-nine.vercel.app',
   'http://localhost:3000',
