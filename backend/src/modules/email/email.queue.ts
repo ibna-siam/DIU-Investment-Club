@@ -230,7 +230,14 @@ export class EmailQueue {
    * Execute a single email job with idempotency and retry handling
    */
   async executeJob(job: EmailJob): Promise<{ success: boolean; providerMessageId?: string; error?: string; isDuplicate?: boolean }> {
-    // 0. Recipient Validation Check (Fail cleanly and securely if invalid/missing)
+    // 1. Check Idempotency First (Section 14)
+    const existing = job.idempotencyKey ? await emailRepository.findByIdempotencyKey(job.idempotencyKey) : null;
+    if (existing && existing.status === 'SENT') {
+      console.warn(`🛑 [EmailQueue] DUPLICATE PREVENTED: Email with idempotencyKey "${job.idempotencyKey}" already SENT. Skipping.`);
+      return { success: true, providerMessageId: existing.provider_message_id || 'DUPLICATE_SKIPPED', isDuplicate: true };
+    }
+
+    // 2. Recipient Validation Check (Fail cleanly and securely if invalid/missing)
     if (!isValidEmail(job.recipient)) {
       console.error(`❌ [EmailQueue] Invalid or missing recipient email address: "${job.recipient}". Aborting job.`);
       await emailRepository.create({
@@ -248,7 +255,7 @@ export class EmailQueue {
       return { success: false, error: 'INVALID_RECIPIENT' };
     }
 
-    // 0B. Check Dynamic Email Automation Rules (Super Admin Controls)
+    // 3. Check Dynamic Email Automation Rules (Super Admin Controls)
     const ruleCheck = emailAutomationManager.isEmailAllowed(job.emailType, job.relatedEntityType);
     if (!ruleCheck.allowed) {
       console.log(`⏸️ [EmailQueue] SKIPPED: ${ruleCheck.reason}`);
@@ -266,14 +273,7 @@ export class EmailQueue {
       return { success: false, error: 'AUTOMATION_DISABLED' };
     }
 
-    // 1. Check Idempotency (Section 14)
-    const existing = await emailRepository.findByIdempotencyKey(job.idempotencyKey);
-    if (existing && existing.status === 'SENT') {
-      console.warn(`🛑 [EmailQueue] DUPLICATE PREVENTED: Email with idempotencyKey "${job.idempotencyKey}" already SENT. Skipping.`);
-      return { success: true, providerMessageId: existing.provider_message_id || 'DUPLICATE_SKIPPED', isDuplicate: true };
-    }
-
-    // 2. Check Preferences (Section 15)
+    // 4. Check Preferences (Section 15)
     const canDeliver = emailPreferencesManager.canDeliver(job.category);
     if (!canDeliver) {
       console.log(`🚫 [EmailQueue] User opted out of category "${job.category}". Skipping.`);

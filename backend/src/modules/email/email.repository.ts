@@ -97,34 +97,39 @@ export class EmailRepository {
     if (isSupabaseConfigured()) {
       try {
         const db = getDbAdmin();
-        const { data, error } = await db
-          .from('email_logs')
-          .insert({
-            id: record.id,
-            idempotency_key: record.idempotency_key,
-            email_type: record.email_type,
-            recipient: record.recipient,
-            subject: record.subject,
-            related_entity_type: record.related_entity_type,
-            related_entity_id: record.related_entity_id,
-            trigger_source: record.trigger_source,
-            provider_message_id: record.provider_message_id,
-            provider: record.provider,
-            provider_status_code: record.provider_status_code,
-            error_category: record.error_category,
-            status: record.status,
-            attempt_count: record.attempt_count,
-            error_message: record.error_message,
-            created_at: record.created_at,
-            sent_at: record.sent_at,
-          })
-          .select()
-          .single();
+        const payload = {
+          id: record.id,
+          idempotency_key: record.idempotency_key,
+          email_type: record.email_type,
+          recipient: record.recipient,
+          subject: record.subject,
+          related_entity_type: record.related_entity_type,
+          related_entity_id: record.related_entity_id,
+          trigger_source: record.trigger_source,
+          provider_message_id: record.provider_message_id,
+          provider: record.provider,
+          provider_status_code: record.provider_status_code,
+          error_category: record.error_category,
+          status: record.status,
+          attempt_count: record.attempt_count,
+          error_message: record.error_message,
+          created_at: record.created_at,
+          sent_at: record.sent_at,
+        };
+
+        const { data, error } = record.idempotency_key
+          ? await db.from('email_logs').upsert(payload, { onConflict: 'idempotency_key' }).select().single()
+          : await db.from('email_logs').insert(payload).select().single();
 
         if (error) {
-          console.warn('⚠️ [EmailRepository] Supabase insert error:', error.message);
+          console.warn('⚠️ [EmailRepository] Supabase save error:', error.message);
         } else if (data) {
-          inMemoryLogs.unshift(data as EmailLogRecord);
+          const idx = inMemoryLogs.findIndex((l) => l.id === data.id || (record.idempotency_key && l.idempotency_key === record.idempotency_key));
+          if (idx >= 0) {
+            inMemoryLogs[idx] = data as EmailLogRecord;
+          } else {
+            inMemoryLogs.unshift(data as EmailLogRecord);
+          }
           return data as EmailLogRecord;
         }
       } catch (err: any) {

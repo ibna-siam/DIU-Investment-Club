@@ -4,8 +4,8 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'DIU Investment Club <onboarding@resend.dev>';
-const RESEND_TEST_RECIPIENT = process.env.RESEND_TEST_RECIPIENT || 'siamibna29@gmail.com';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'DIU Investment Club <noreply@invesmentclub.top>';
+const RESEND_TEST_RECIPIENT = process.env.RESEND_TEST_RECIPIENT || 'siamibna75@gmail.com';
 const JWT_SECRET = process.env.JWT_SECRET || 'diu_investment_club_super_secure_secret_token_2026_key';
 const API_BASE = 'http://localhost:5000/api/v1';
 
