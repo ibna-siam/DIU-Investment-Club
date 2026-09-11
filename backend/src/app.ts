@@ -169,13 +169,35 @@ export const createApp = (): Express => {
   });
 
   // API Health Check (Root & v1) - Ultra-lightweight for probes & load balancers
-  const healthResponse = (_req: Request, res: Response) => {
-    const { isSupabaseConfigured } = require('./config/supabase');
-    res.status(200).json({
-      success: true,
+  const healthResponse = async (_req: Request, res: Response) => {
+    const { isSupabaseConfigured, getDbAdmin } = require('./config/supabase');
+
+    let dbOperational = false;
+    if (isSupabaseConfigured()) {
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database ping timeout')), 3000)
+        );
+        const pingPromise = getDbAdmin()
+          .from('system_settings')
+          .select('id')
+          .limit(1);
+
+        const { error } = (await Promise.race([pingPromise, timeoutPromise])) as any;
+        if (!error) {
+          dbOperational = true;
+        }
+      } catch {
+        dbOperational = false;
+      }
+    }
+
+    const statusCode = dbOperational ? 200 : 503;
+    res.status(statusCode).json({
+      success: dbOperational,
       service: 'DIU Investment Club Finance API',
-      status: 'operational',
-      supabaseConnected: isSupabaseConfigured(),
+      status: dbOperational ? 'operational' : 'degraded',
+      supabaseConnected: dbOperational,
       uptimeSeconds: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
       version: '2.5.0',
