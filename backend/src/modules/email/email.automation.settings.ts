@@ -40,8 +40,8 @@ const DEFAULT_SETTINGS: EmailAutomationSettings = {
     new_member_welcome: true,
     system_user_welcome: true,
     account_invitation: true,
-    member_payment_confirmation: false,
-    payment_verification: false,
+    member_payment_confirmation: true,
+    payment_verification: true,
     payment_rejection: true,
     expense_approval_request: true,
     expense_approved: true,
@@ -255,9 +255,9 @@ export class EmailAutomationManager {
       mappedRuleKey = 'system_user_welcome';
     } else if (typeUpper === 'USER_INVITED' || typeUpper === 'ACCOUNT_INVITATION') {
       mappedRuleKey = 'account_invitation';
-    } else if (typeUpper === 'PAYMENT_CONFIRMATION' || typeUpper === 'PAYMENT_SUBMITTED') {
+    } else if (typeUpper === 'PAYMENT_SUBMITTED') {
       mappedRuleKey = 'member_payment_confirmation';
-    } else if (typeUpper === 'PAYMENT_VERIFIED' || typeUpper === 'PAYMENT_CONFIRMED') {
+    } else if (typeUpper === 'PAYMENT_VERIFIED' || typeUpper === 'PAYMENT_CONFIRMED' || typeUpper === 'PAYMENT_CONFIRMATION') {
       mappedRuleKey = 'payment_verification';
     } else if (typeUpper === 'PAYMENT_REJECTED') {
       mappedRuleKey = 'payment_rejection';

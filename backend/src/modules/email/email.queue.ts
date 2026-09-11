@@ -774,10 +774,42 @@ export class EmailQueue {
       }
     });
 
-    // 2. Payment Confirmed -> Automated email disabled per Section 1 requirements
-    // (Preserves financial records, receipt generation, status updates, and public digital receipts without unwanted automated emails)
-    emailEventBus.on('PAYMENT_CONFIRMED', (_data: PaymentConfirmedEvent) => {
-      // Payment verification email dispatch permanently disabled
+    // 2. Payment Confirmed -> Payment Confirmation & Digital Receipt Email (Section 7)
+    emailEventBus.on('PAYMENT_CONFIRMED', (data: PaymentConfirmedEvent) => {
+      try {
+        if (!data.memberEmail || !isValidEmail(data.memberEmail)) {
+          console.warn(`⚠️ [EmailQueue] PAYMENT_CONFIRMED event missing valid recipient email: "${data.memberEmail}". Skipping.`);
+          return;
+        }
+
+        const { subject, html, text } = renderPaymentConfirmationEmail({
+          memberName: data.memberName,
+          amount: data.amount,
+          paymentReference: data.paymentNumber,
+          paymentType: data.paymentMethod,
+          paymentDate: data.paymentDate,
+          receiptNumber: data.paymentNumber,
+          receiptToken: data.receiptToken,
+          recipientEmail: data.memberEmail,
+        });
+
+        this.enqueue({
+          idempotencyKey: `PAYMENT_CONFIRMED:${data.paymentId}`,
+          emailType: 'PAYMENT_VERIFIED',
+          category: 'FINANCIAL',
+          recipient: data.memberEmail,
+          subject,
+          html,
+          text,
+          relatedEntityType: 'payment',
+          relatedEntityId: data.paymentId,
+          triggerSource: 'PAYMENT_VERIFIED',
+          sentByUserId: data.verifiedBy,
+        });
+        console.log(`📧 [EmailQueue] Payment confirmation email enqueued for member: ${data.memberEmail} (Payment: ${data.paymentNumber})`);
+      } catch (err: any) {
+        console.error('❌ [EmailQueue] Failed to handle PAYMENT_CONFIRMED event:', err.message);
+      }
     });
 
     // 3. Expense Submitted -> Notify Reviewers / Approvers

@@ -152,3 +152,27 @@ When any recipient (student, member, faculty, executive) clicks **Reply** on any
   - Render API (`srv-dah8l061egvs73d2g3ug`): Deploy `dep-dai2lc6q1p3s73ar42k0` status `live`.
   - Vercel Frontend (`prj_QZWOEwo6oapEmSDBUaQGVYorYohS`): Deploy `dpl_4WLjp2cKzEU4pp2GX5DpgQQ6HmJg` status `READY`.
 
+---
+
+# Payment Verification Email Incident & Root Cause Fix
+
+## 1. Incident Summary
+Two verified member payments (`PAY-2026-00034` and `PAY-2026-00033`) did not trigger official payment confirmation emails upon administrative verification in production.
+
+## 2. Root Cause
+- In `backend/src/modules/email/email.queue.ts` (introduced in commit `3984a7e`), the event listener `emailEventBus.on('PAYMENT_CONFIRMED')` had its handler silenced with an empty function (`// Payment verification email dispatch permanently disabled`).
+- As a secondary block, `email.automation.settings.ts` defaulted `payment_verification: false` in `DEFAULT_SETTINGS`, and mapped `PAYMENT_CONFIRMATION` to the submission-stage rule instead of verification.
+
+## 3. Resolution & Fixes
+- **Active Listener Restored (`email.queue.ts`)**: `emailEventBus.on('PAYMENT_CONFIRMED')` now validates the member's email, renders `renderPaymentConfirmationEmail` with digital receipt link and token, and enqueues `PAYMENT_VERIFIED` with deterministic idempotency key `PAYMENT_CONFIRMED:${paymentId}`.
+- **Automation Rules Enabled (`email.automation.settings.ts`)**: Enabled `payment_verification` and `member_payment_confirmation` in default settings and mapped `PAYMENT_VERIFIED`, `PAYMENT_CONFIRMED`, and `PAYMENT_CONFIRMATION` to `payment_verification`.
+- **Receipt Token Support (`email.service.ts`)**: Added `receiptToken?: string` to `sendPaymentConfirmationEmail`.
+- **Retroactive Delivery (`backend/scripts/retroactive_member_payment_emails.ts`)**:
+  - Payment `PAY-2026-00034` (Thay Thay Wong | `252-58-058@diu.edu.bd`): Successfully delivered via Resend (Provider ID: `b2db6f19-a629-4e5a-ab74-1f82e3de4e18`).
+  - Payment `PAY-2026-00033` (Md. Ibna Siam | `252-58-083@diu.edu.bd`): Successfully delivered via Resend (Provider ID: `8309a0e9-6c91-4744-8fa9-1b974be8ff8d`).
+  - Idempotency verified: re-dispatch attempts logged and suppressed as duplicates (`isDuplicate: true`).
+- **End-to-End Pipeline Verification (`backend/scripts/verify_payment_verification_e2e.ts`)**:
+  - Emitted `PAYMENT_CONFIRMED` event through `emailEventBus`.
+  - Confirmed queue reception, template rendering, and Resend delivery to test recipient (Provider ID: `0cd70c22-7bb8-4728-b814-99ebc2546269`).
+
+

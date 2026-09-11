@@ -335,6 +335,7 @@ export class EmailService {
     paymentType?: string;
     paymentDate?: string;
     receiptNumber?: string;
+    receiptToken?: string;
     sentByUserId?: string;
   }): Promise<EmailSendResult> {
     const { subject, html, text } = renderPaymentConfirmationEmail({
@@ -344,6 +345,7 @@ export class EmailService {
       paymentType: options.paymentType,
       paymentDate: options.paymentDate,
       receiptNumber: options.receiptNumber,
+      receiptToken: options.receiptToken,
       recipientEmail: options.to,
     });
 
