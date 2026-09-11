@@ -17,6 +17,7 @@ import {
   Save,
   X,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { departmentsService, Department } from '../../../services/departments.service';
 import { useAuth } from '../../../hooks/useAuth';
@@ -38,6 +39,7 @@ export default function DepartmentsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -158,13 +160,31 @@ export default function DepartmentsManagementPage() {
 
   const handleToggleActive = async (dept: Department) => {
     if (!isSuperAdmin) return;
+    if (togglingId) return; // Prevent duplicate requests while another toggle is in flight
+
+    const targetActive = !dept.active;
+    setTogglingId(dept.id);
+    setError('');
+
+    // Optimistic UI update
+    setDepartments((prev) =>
+      prev.map((d) => (d.id === dept.id ? { ...d, active: targetActive } : d))
+    );
+
     try {
-      await departmentsService.updateDepartment(dept.id, { active: !dept.active });
-      setSuccess(`Department "${dept.official_name}" status set to ${!dept.active ? 'ACTIVE' : 'INACTIVE'}.`);
+      await departmentsService.updateDepartment(dept.id, { active: targetActive });
+      setSuccess(`Department "${dept.official_name}" status set to ${targetActive ? 'ACTIVE' : 'INACTIVE'}.`);
+      departmentsService.invalidateCache();
       await loadDepartments();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
+      // Revert optimistic update on failure
+      setDepartments((prev) =>
+        prev.map((d) => (d.id === dept.id ? { ...d, active: dept.active } : d))
+      );
       setError(err.response?.data?.error?.message || 'Failed to toggle status.');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -344,15 +364,24 @@ export default function DepartmentsManagementPage() {
                     <td className="px-5 py-3.5">
                       {isSuperAdmin ? (
                         <button
+                          type="button"
+                          disabled={togglingId === dept.id}
                           onClick={() => handleToggleActive(dept)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                            dept.active
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
-                              : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150 ${
+                            togglingId === dept.id
+                              ? 'bg-slate-800/80 text-slate-300 border border-slate-700 cursor-wait'
+                              : dept.active
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 cursor-pointer'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 cursor-pointer'
                           }`}
                           title="Click to toggle active/inactive"
                         >
-                          {dept.active ? (
+                          {togglingId === dept.id ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
+                              <span>Updating...</span>
+                            </>
+                          ) : dept.active ? (
                             <>
                               <CheckCircle2 className="w-3 h-3" /> Active
                             </>

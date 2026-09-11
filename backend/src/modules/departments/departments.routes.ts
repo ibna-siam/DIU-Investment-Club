@@ -25,6 +25,10 @@ router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), (req, res, next) =>
   departmentsController.updateDepartment(req, res, next)
 );
 
+router.patch('/:id', authenticate, requireRole('SUPER_ADMIN'), (req, res, next) =>
+  departmentsController.updateDepartment(req, res, next)
+);
+
 router.delete('/:id', authenticate, requireRole('SUPER_ADMIN'), (req, res, next) =>
   departmentsController.deleteDepartment(req, res, next)
 );

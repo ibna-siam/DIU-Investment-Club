@@ -26,8 +26,10 @@ export class DepartmentsController {
         search: search as string | undefined,
       });
 
-      // Browser/client cache header for 60 seconds
-      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+      // Ensure client receives real-time status updates without stale browser caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.status(200).json({
         success: true,
         data: departments,
@@ -50,6 +52,9 @@ export class DepartmentsController {
         search: search as string | undefined,
       });
 
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.status(200).json({
         success: true,
         data: departments,

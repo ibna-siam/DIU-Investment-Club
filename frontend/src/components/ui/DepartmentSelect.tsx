@@ -34,24 +34,34 @@ export function DepartmentSelect({
   const listRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Load cached departments once
+  // Load cached departments once, and re-fetch if departments are modified elsewhere
   useEffect(() => {
     let mounted = true;
-    departmentsService
-      .getActiveDepartments()
-      .then((data) => {
-        if (mounted) {
-          setDepartments(data || []);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load official DIU departments:', err);
-        if (mounted) setLoading(false);
-      });
+    const fetchActiveDepts = (force = false) => {
+      departmentsService
+        .getActiveDepartments(force)
+        .then((data) => {
+          if (mounted) {
+            setDepartments(data || []);
+            setLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load official DIU departments:', err);
+          if (mounted) setLoading(false);
+        });
+    };
 
+    fetchActiveDepts(false);
+
+    const handleDepartmentsChanged = () => {
+      fetchActiveDepts(true);
+    };
+
+    window.addEventListener('departments-changed', handleDepartmentsChanged);
     return () => {
       mounted = false;
+      window.removeEventListener('departments-changed', handleDepartmentsChanged);
     };
   }, []);
 

@@ -16,7 +16,19 @@ let cachedActiveDepartments: Department[] | null = null;
 let cachePromise: Promise<Department[]> | null = null;
 
 export const departmentsService = {
+  invalidateCache(): void {
+    cachedActiveDepartments = null;
+    cachePromise = null;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('departments-changed'));
+    }
+  },
+
   async getActiveDepartments(forceRefresh = false): Promise<Department[]> {
+    if (forceRefresh) {
+      this.invalidateCache();
+    }
+
     if (!forceRefresh && cachedActiveDepartments) {
       return cachedActiveDepartments;
     }
@@ -25,8 +37,9 @@ export const departmentsService = {
       return cachePromise;
     }
 
+    const endpoint = forceRefresh ? `/departments?_t=${Date.now()}` : '/departments';
     cachePromise = api
-      .get<any>('/departments')
+      .get<any>(endpoint)
       .then((res) => {
         const list = res.data || res || [];
         cachedActiveDepartments = list;
@@ -41,8 +54,9 @@ export const departmentsService = {
     return cachePromise;
   },
 
-  async getAllDepartments(): Promise<Department[]> {
-    const res = await api.get<any>('/departments/all');
+  async getAllDepartments(forceRefresh = false): Promise<Department[]> {
+    const endpoint = forceRefresh ? `/departments/all?_t=${Date.now()}` : '/departments/all';
+    const res = await api.get<any>(endpoint);
     return res.data || res || [];
   },
 
@@ -59,7 +73,7 @@ export const departmentsService = {
     sort_order?: number;
   }): Promise<Department> {
     const res = await api.post<any>('/departments', data);
-    cachedActiveDepartments = null; // bust cache
+    this.invalidateCache();
     return res.data;
   },
 
@@ -74,12 +88,12 @@ export const departmentsService = {
     }>
   ): Promise<Department> {
     const res = await api.put<any>(`/departments/${id}`, data);
-    cachedActiveDepartments = null; // bust cache
+    this.invalidateCache();
     return res.data;
   },
 
   async deleteDepartment(id: string): Promise<void> {
     await api.delete<any>(`/departments/${id}`);
-    cachedActiveDepartments = null; // bust cache
+    this.invalidateCache();
   },
 };
