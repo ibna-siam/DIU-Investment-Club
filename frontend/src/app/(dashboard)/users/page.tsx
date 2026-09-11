@@ -224,13 +224,18 @@ export default function UsersPage() {
       return;
     }
 
+    if (!newRoleId) {
+      setCreateError('Please select an authorized role for this user (Role selection is required)');
+      return;
+    }
+
     createUserMutation.mutate({
       full_name: trimmedName,
       email: trimmedEmail,
       student_id: newStudentId.trim() || undefined,
       phone: newPhone.trim() || undefined,
       password: newPassword.trim() || undefined,
-      role_id: newRoleId || undefined,
+      role_id: newRoleId,
       status: 'active',
     });
   };
@@ -602,14 +607,15 @@ export default function UsersPage() {
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
-              Primary Role Assignment
+              Primary Role Assignment <span className="text-rose-400">*</span>
             </label>
             <select
+              required
               value={newRoleId}
               onChange={(e) => setNewRoleId(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-white"
             >
-              <option value="">Select a role (optional)</option>
+              <option value="">-- Select an authorized role (Required) * --</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name} ({r.slug})

@@ -40,11 +40,19 @@ export const automationService = {
   async getLogs(params?: {
     rule_id?: string;
     status?: string;
+    trigger_type?: string;
+    search?: string;
+    page?: number;
     limit?: number;
     offset?: number;
-  }): Promise<{ logs: AutomationLog[]; total: number }> {
+  }): Promise<{ logs: AutomationLog[]; total: number; page: number; totalPages: number }> {
     const res = await api.get<any>(`/automation/logs${toQuery(params)}`);
-    return { logs: res.data || [], total: res.total || 0 };
+    return {
+      logs: res.data || [],
+      total: res.total || 0,
+      page: res.page || 1,
+      totalPages: res.totalPages || 1,
+    };
   },
 
   // --- Automation Rules ---

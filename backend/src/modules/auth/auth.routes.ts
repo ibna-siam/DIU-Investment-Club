@@ -8,7 +8,10 @@ const router = Router();
 // Authentication & Session
 router.post('/login', loginLimiter, (req, res, next) => authController.login(req, res, next));
 router.post('/logout', (req, res) => authController.logout(req, res));
-router.get('/me', authenticate, (req, res) => authController.getMe(req, res));
+router.get('/me', authenticate, (req, res, next) => authController.getMe(req, res, next));
+router.get('/profile', authenticate, (req, res, next) => authController.getProfile(req, res, next));
+router.patch('/profile', authenticate, (req, res, next) => authController.updateProfile(req, res, next));
+router.post('/change-password', authenticate, (req, res, next) => authController.changePassword(req, res, next));
 
 // Password Recovery & Reset (Rate limited & abuse protected)
 router.post('/forgot-password', passwordResetLimiter, (req, res, next) => authController.forgotPassword(req, res, next));

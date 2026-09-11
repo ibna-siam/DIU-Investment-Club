@@ -26,6 +26,7 @@ export interface DispatchNotificationPayload {
   related_entity_id?: string;
   idempotency_key?: string;
   deduplicateHours?: number;
+  skipEmail?: boolean;
   metadata?: Record<string, any>;
 }
 
@@ -569,7 +570,7 @@ export class NotificationsRepository {
     // 2. Section 4 & 5: Preference Check
     const prefs = await this.getPreferences(targetUserId);
     const allowInApp = notificationPreferencesManager.canDeliverInApp(prefs, category, type);
-    const allowEmail = notificationPreferencesManager.canDeliverEmail(prefs, category, type);
+    const allowEmail = !payload.skipEmail && notificationPreferencesManager.canDeliverEmail(prefs, category, type);
 
     if (!allowInApp && !allowEmail) {
       console.log(`ℹ️ [NotificationsRepository] Recipient ${targetUserId} opted out of both In-App & Email for category ${category}. Suppressing.`);

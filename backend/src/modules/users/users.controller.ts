@@ -17,7 +17,7 @@ const createUserSchema = z.object({
   phone: z.string().optional(),
   student_id: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters').optional(),
-  role_id: z.string().uuid().optional(),
+  role_id: z.string().uuid('Please select an authorized role for this user'),
   status: z.enum(['active', 'inactive', 'suspended']).default('active'),
 });
 

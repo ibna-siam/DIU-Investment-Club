@@ -79,6 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.includes('/dashboard')) return 'System Dashboard';
     if (pathname.includes('/users')) return 'User Management';
     if (pathname.includes('/roles')) return 'Roles & Permissions';
+    if (pathname.includes('/profile')) return 'Personal Profile';
     if (pathname.includes('/settings')) return 'System Settings';
     if (pathname.includes('/unauthorized')) return 'Access Restricted';
     return 'Financial Management System';

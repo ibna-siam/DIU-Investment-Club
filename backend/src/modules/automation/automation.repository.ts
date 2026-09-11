@@ -99,6 +99,9 @@ export class AutomationRepository {
   async getLogs(params?: {
     rule_id?: string;
     status?: string;
+    trigger_type?: string;
+    search?: string;
+    page?: number;
     limit?: number;
     offset?: number;
   }): Promise<{ logs: AutomationLog[]; total: number }> {
@@ -113,16 +116,39 @@ export class AutomationRepository {
     if (params?.rule_id) {
       query = query.eq('rule_id', params.rule_id);
     }
-    if (params?.status) {
+    if (params?.status && params.status !== 'ALL') {
       query = query.eq('status', params.status);
     }
+    if (params?.trigger_type && params.trigger_type !== 'ALL') {
+      query = query.eq('trigger_type', params.trigger_type);
+    }
+    if (params?.search && params.search.trim()) {
+      const q = params.search.trim();
+      query = query.or(`trigger_type.ilike.%${q}%,action_type.ilike.%${q}%,error_message.ilike.%${q}%`);
+    }
 
-    const limit = params?.limit || 50;
-    const offset = params?.offset || 0;
+    const limit = params?.limit && params.limit > 0 ? params.limit : 25;
+    const page = params?.page && params.page > 0 ? params.page : 1;
+    const offset = params?.offset !== undefined ? params.offset : (page - 1) * limit;
     query = query.range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
-    if (error) throw error;
+    if (error) {
+      console.warn('⚠️ [AutomationRepository] getLogs query error:', error.message);
+      // Fallback query without relation if join fails
+      const fallback = await getDbAdmin()
+        .from('automation_logs')
+        .select('*', { count: 'exact' })
+        .order('execution_time', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (fallback.error) throw fallback.error;
+      const fallbackLogs = (fallback.data || []).map((l: any) => ({
+        ...l,
+        rule_name: null,
+      })) as AutomationLog[];
+      return { logs: fallbackLogs, total: fallback.count || 0 };
+    }
 
     const logs = (data || []).map((l: any) => ({
       ...l,

@@ -369,6 +369,7 @@ export class DomainNotificationResolver {
         related_entity_id: event.paymentId,
         idempotency_key: `PAYMENT_CONFIRMED:${event.paymentId}:${recipientId}`,
         deduplicateHours: 72,
+        skipEmail: true,
       });
     } catch (err) {
       console.warn('⚠️ [DomainNotificationResolver] handlePaymentConfirmed failed:', (err as any)?.message);

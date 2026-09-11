@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#D1FAE5" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Rounded Shield / Hexagon -->
+  <rect x="2" y="2" width="28" height="28" rx="7" fill="url(#bgGrad)" />
+  <rect x="2" y="2" width="28" height="28" rx="7" fill="none" stroke="url(#goldGrad)" stroke-width="1.2" opacity="0.85" />
+
+  <!-- Rising Financial Bars -->
+  <rect x="6.5" y="19" width="3" height="6" rx="1" fill="#A7F3D0" />
+  <rect x="11.5" y="15" width="3" height="10" rx="1" fill="#A7F3D0" />
+  <rect x="16.5" y="11" width="3" height="14" rx="1" fill="#E0E7FF" />
+  <rect x="21.5" y="7" width="3" height="18" rx="1" fill="#FDE68A" />
+
+  <!-- Dynamic Rising Trendline / Investment Vector Arrow -->
+  <path
+    d="M 6.5 17.5 L 12 13 L 17 10 L 24 5"
+    fill="none"
+    stroke="url(#arrowGrad)"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Arrowhead -->
+  <path
+    d="M 20.5 4.8 L 24.5 4.8 L 24.5 8.8"
+    fill="none"
+    stroke="url(#arrowGrad)"
+    stroke-width="2.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

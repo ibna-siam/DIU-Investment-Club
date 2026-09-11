@@ -101,6 +101,7 @@ export const api = {
     return promise;
   },
   post: <T>(endpoint: string, body?: any, options?: { idempotencyKey?: string }) => {
+    inFlightGetRequests.clear();
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const headers: Record<string, string> = {};
     if (options?.idempotencyKey) {
@@ -114,6 +115,7 @@ export const api = {
     });
   },
   put: <T>(endpoint: string, body?: any) => {
+    inFlightGetRequests.clear();
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return request<T>(endpoint, {
       method: 'PUT',
@@ -121,15 +123,21 @@ export const api = {
     });
   },
   patch: <T>(endpoint: string, body?: any) => {
+    inFlightGetRequests.clear();
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     return request<T>(endpoint, {
       method: 'PATCH',
       body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
     });
   },
-  delete: <T>(endpoint: string, options?: { body?: any }) =>
-    request<T>(endpoint, {
+  delete: <T>(endpoint: string, options?: { body?: any }) => {
+    inFlightGetRequests.clear();
+    return request<T>(endpoint, {
       method: 'DELETE',
       body: options?.body ? JSON.stringify(options.body) : undefined,
-    }),
+    });
+  },
+  clearCache: () => {
+    inFlightGetRequests.clear();
+  },
 };

@@ -1,7 +1,7 @@
 import { store, queryDatabase } from '../../database/db';
 import { UserProfile, Role, UserStatus, PaginatedResponse } from '../../types';
 import { rolesRepository } from '../roles/roles.repository';
-import { supabaseClient, supabaseAdmin, isSupabaseConfigured } from '../../config/supabase';
+import { supabaseClient, supabaseAdmin, isSupabaseConfigured, getDbAdmin } from '../../config/supabase';
 import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { invalidateAuthCache } from '../../middleware/auth.middleware';
@@ -341,6 +341,21 @@ export class UsersRepository {
       status: data.status ?? current.status,
       updated_at: new Date().toISOString(),
     };
+
+    if (isSupabaseConfigured()) {
+      try {
+        const updatePayload: any = { updated_at: new Date().toISOString() };
+        if (data.full_name !== undefined) updatePayload.full_name = data.full_name;
+        if (data.phone !== undefined) updatePayload.phone = data.phone;
+        if (data.student_id !== undefined) updatePayload.student_id = data.student_id;
+        if (data.profile_image !== undefined) updatePayload.profile_image = data.profile_image;
+        if (data.status !== undefined) updatePayload.status = data.status;
+
+        await getDbAdmin().from('profiles').update(updatePayload).eq('id', id);
+      } catch (err: any) {
+        console.warn('⚠️ [UsersRepository] Supabase updateProfile failed:', err.message);
+      }
+    }
 
     try {
       await queryDatabase(

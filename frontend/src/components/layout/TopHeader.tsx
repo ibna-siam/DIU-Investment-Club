@@ -85,7 +85,7 @@ export function TopHeader({ onOpenMobileMenu, title = 'Financial Management Syst
 
               <div className="py-1">
                 <Link
-                  href="/settings"
+                  href="/profile"
                   onClick={() => setDropdownOpen(false)}
                   className="flex items-center space-x-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                 >

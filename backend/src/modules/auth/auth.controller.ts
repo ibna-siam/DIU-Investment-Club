@@ -37,6 +37,22 @@ const setupAdminSchema = z.object({
   student_id: z.string().optional(),
 });
 
+const updateProfileSchema = z.object({
+  full_name: z.string().min(2, 'Full name must be at least 2 characters').optional(),
+  phone: z.string().nullable().optional(),
+  student_id: z.string().nullable().optional(),
+  profile_image: z.string().nullable().optional(),
+});
+
+const changePasswordSchema = z.object({
+  current_password: z.string().min(1, 'Current password is required'),
+  new_password: z.string().min(8, 'New password must be at least 8 characters'),
+  confirm_password: z.string().min(8, 'Confirm password is required'),
+}).refine((data) => data.new_password === data.confirm_password, {
+  message: "New passwords don't match",
+  path: ['confirm_password'],
+});
+
 export class AuthController {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -427,21 +443,6 @@ export class AuthController {
     }
   }
 
-  async getMe(req: AuthenticatedRequest, res: Response): Promise<void> {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
-      });
-      return;
-    }
-
-    const profile = await usersRepository.findById(req.user.id);
-    res.status(200).json({
-      success: true,
-      data: profile,
-    });
-  }
 
   async setupInitialAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -695,6 +696,201 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Account setup complete! You can now log in with your new password.',
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * SECTION 4: Personal Profile Privacy & Ownership Enforcement
+   * Returns ONLY the authenticated user's personal profile (identity resolved from JWT session).
+   */
+  async getMe(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+
+      const user = await usersRepository.findById(userId);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'USER_NOT_FOUND', message: 'User profile not found' },
+        });
+        return;
+      }
+
+      // Return strictly personal profile data with sanitization
+      res.status(200).json({
+        success: true,
+        data: {
+          id: user.id,
+          full_name: user.full_name,
+          email: user.email,
+          phone: user.phone || null,
+          student_id: user.student_id || null,
+          profile_image: user.profile_image || null,
+          status: user.status,
+          roles: user.roles || [],
+          permissions: user.permissions || [],
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    return this.getMe(req, res, next);
+  }
+
+  /**
+   * SECTION 4: Update Personal Profile
+   * Allows any authenticated user to modify their own profile data (name, phone, student_id, profile_image).
+   */
+  async updateProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+
+      const data = updateProfileSchema.parse(req.body);
+
+      const updated = await usersRepository.updateProfile(userId, {
+        full_name: data.full_name,
+        phone: data.phone,
+        student_id: data.student_id,
+        profile_image: data.profile_image,
+      });
+
+      await auditLogsRepository.log({
+        user_id: userId,
+        action: 'PROFILE_UPDATED',
+        module: 'auth',
+        record_id: userId,
+        new_data: data,
+        ip_address: req.ip,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Personal profile updated successfully',
+        data: updated,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * SECTION 4: Self Password Change
+   * Allows any authenticated user to change their password securely by verifying current password.
+   */
+  async changePassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+        return;
+      }
+
+      const { current_password, new_password } = changePasswordSchema.parse(req.body);
+
+      const user = await usersRepository.findById(userId);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'USER_NOT_FOUND', message: 'User not found' },
+        });
+        return;
+      }
+
+      // 1. Verify current password
+      let isValidPassword = false;
+      if (isSupabaseConfigured() && supabaseClient) {
+        const { error: authErr } = await supabaseClient.auth.signInWithPassword({
+          email: user.email,
+          password: current_password,
+        });
+        isValidPassword = !authErr;
+      }
+
+      if (!isValidPassword && (user as any).password_hash) {
+        isValidPassword = await bcrypt.compare(current_password, (user as any).password_hash);
+      }
+
+      if (!isValidPassword) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_CURRENT_PASSWORD', message: 'Current password verification failed' },
+        });
+        return;
+      }
+
+      // 2. Update password in Supabase or local store
+      if (isSupabaseConfigured() && supabaseAdmin) {
+        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+          password: new_password,
+        });
+        if (updateErr) {
+          console.warn('⚠️ [changePassword] Supabase update error:', updateErr.message);
+        }
+      }
+
+      const hash = await bcrypt.hash(new_password, 10);
+      try {
+        await getDbAdmin()
+          .from('profiles')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', userId);
+      } catch (e) {}
+
+      const profile = store.profiles.get(userId);
+      if (profile) {
+        profile.password_hash = hash;
+        profile.updated_at = new Date().toISOString();
+      }
+
+      // 3. Audit log
+      await auditLogsRepository.log({
+        user_id: userId,
+        action: 'PASSWORD_CHANGED',
+        module: 'auth',
+        record_id: userId,
+        ip_address: req.ip,
+      });
+
+      // 4. Security notification
+      emailEventBus.emitEvent({
+        type: 'PASSWORD_CHANGED',
+        payload: {
+          userId,
+          email: user.email,
+          fullName: user.full_name || 'Member',
+          changedAt: new Date().toUTCString(),
+          ipAddress: req.ip,
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Password changed successfully',
       });
     } catch (err) {
       next(err);

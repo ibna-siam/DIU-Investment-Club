@@ -133,7 +133,7 @@ function SidebarComponent({ collapsed, onToggleCollapse }: SidebarProps) {
       </div>
 
       {/* Navigation Links */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
+      <div className="flex-1 overflow-y-auto overscroll-contain [transform:translateZ(0)] py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
         {authorizedNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

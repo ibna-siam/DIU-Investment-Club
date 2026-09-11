@@ -83,14 +83,30 @@ export class AutomationController {
 
   async getLogs(req: Request, res: Response): Promise<void> {
     try {
-      const { rule_id, status, limit, offset } = req.query;
+      const { rule_id, status, trigger_type, search, page, limit, offset } = req.query;
+      const parsedLimit = limit ? Math.min(Number(limit), 100) : 25;
+      const parsedPage = page ? Math.max(Number(page), 1) : 1;
+
       const result = await automationRepository.getLogs({
         rule_id: rule_id as string,
         status: status as string,
-        limit: limit ? Number(limit) : undefined,
+        trigger_type: trigger_type as string,
+        search: search as string,
+        page: parsedPage,
+        limit: parsedLimit,
         offset: offset ? Number(offset) : undefined,
       });
-      res.json({ success: true, data: result.logs, total: result.total });
+
+      const totalPages = Math.ceil(result.total / parsedLimit) || 1;
+
+      res.json({
+        success: true,
+        data: result.logs,
+        total: result.total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages,
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }

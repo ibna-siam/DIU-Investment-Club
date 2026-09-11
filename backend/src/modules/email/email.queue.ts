@@ -774,36 +774,10 @@ export class EmailQueue {
       }
     });
 
-    // 2. Payment Confirmed -> Payment Confirmation Email
-    emailEventBus.on('PAYMENT_CONFIRMED', (data: PaymentConfirmedEvent) => {
-      try {
-        const { subject, html, text } = renderPaymentConfirmationEmail({
-          memberName: data.memberName,
-          amount: data.amount,
-          paymentReference: data.paymentNumber,
-          paymentType: data.paymentMethod,
-          paymentDate: data.paymentDate,
-          receiptNumber: data.paymentNumber,
-          receiptToken: data.receiptToken,
-          recipientEmail: data.memberEmail,
-        });
-
-        this.enqueue({
-          idempotencyKey: `PAYMENT_CONFIRMED:${data.paymentId}`,
-          emailType: 'PAYMENT_CONFIRMATION',
-          category: 'FINANCIAL',
-          recipient: data.memberEmail,
-          subject,
-          html,
-          text,
-          relatedEntityType: 'payment',
-          relatedEntityId: data.paymentId,
-          triggerSource: 'PAYMENT_VERIFIED',
-          sentByUserId: data.verifiedBy,
-        });
-      } catch (err: any) {
-        console.error('❌ [EmailQueue] Failed to handle PAYMENT_CONFIRMED event:', err.message);
-      }
+    // 2. Payment Confirmed -> Automated email disabled per Section 1 requirements
+    // (Preserves financial records, receipt generation, status updates, and public digital receipts without unwanted automated emails)
+    emailEventBus.on('PAYMENT_CONFIRMED', (_data: PaymentConfirmedEvent) => {
+      // Payment verification email dispatch permanently disabled
     });
 
     // 3. Expense Submitted -> Notify Reviewers / Approvers

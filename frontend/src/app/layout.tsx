@@ -12,10 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
-            gcTime: 5 * 60 * 1000,
+            staleTime: 15 * 1000,
+            gcTime: 10 * 60 * 1000,
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: 2,
           },
         },
       })
@@ -30,6 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           content="Centralized financial and accounting management platform for DIU Investment Club."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="alternate icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
         <link rel="canonical" href="https://invesmentclub.top" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://invesmentclub.top" />
