@@ -704,6 +704,42 @@ export class EmailController {
       });
     }
   }
+
+  /**
+   * Get all 17 standard email automation rules
+   */
+  async getAutomationRules(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const rules = await emailAutomationManager.getAllRules();
+      res.json({
+        success: true,
+        data: rules,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: { message: error.message } });
+    }
+  }
+
+  /**
+   * Toggle an email automation rule on/off
+   */
+  async toggleAutomationRule(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { key } = req.params;
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        res.status(400).json({ success: false, error: { message: 'Enabled boolean is required' } });
+        return;
+      }
+      const updated = await emailAutomationManager.toggleRule(key, enabled, req.user?.id);
+      res.json({
+        success: true,
+        data: updated,
+      });
+    } catch (error: any) {
+      res.status(400).json({ success: false, error: { message: error.message } });
+    }
+  }
 }
 
 export const emailController = new EmailController();

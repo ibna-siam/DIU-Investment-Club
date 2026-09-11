@@ -20,11 +20,13 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useNotificationStore } from '../../context/NotificationContext';
 import { NotificationItem } from '../../types/governance';
+import { ROUTE_PERMISSIONS } from '../../config/navigation';
 
 export function NotificationDropdown() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [accessDeniedMessage, setAccessDeniedMessage] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -59,10 +61,30 @@ export function NotificationDropdown() {
     if (!notif.is_read) {
       await handleMarkAsRead(notif.id);
     }
-    setIsOpen(false);
+
     const destination = notif.link || (notif as any).action_url;
     if (destination) {
+      // Check RBAC permission for destination route
+      const baseRoute = destination.split('?')[0].split('#')[0];
+      let requiredPermission: string | undefined;
+
+      for (const [route, perm] of Object.entries(ROUTE_PERMISSIONS)) {
+        if (baseRoute === route || baseRoute.startsWith(route + '/')) {
+          requiredPermission = perm;
+          break;
+        }
+      }
+
+      if (requiredPermission && !hasPermission(requiredPermission)) {
+        setAccessDeniedMessage(`Access restricted: You do not have permission (${requiredPermission}) to access this resource.`);
+        setTimeout(() => setAccessDeniedMessage(null), 4000);
+        return;
+      }
+
+      setIsOpen(false);
       router.push(destination);
+    } else {
+      setIsOpen(false);
     }
   };
 
@@ -138,6 +160,14 @@ export function NotificationDropdown() {
               </button>
             )}
           </div>
+
+          {/* Access Denied Warning */}
+          {accessDeniedMessage && (
+            <div className="p-2.5 bg-rose-950/80 border-b border-rose-500/40 text-[11px] text-rose-200 flex items-center gap-1.5 animate-in fade-in">
+              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>{accessDeniedMessage}</span>
+            </div>
+          )}
 
           {/* List */}
           <div className="max-h-96 overflow-y-auto divide-y divide-slate-800/60">

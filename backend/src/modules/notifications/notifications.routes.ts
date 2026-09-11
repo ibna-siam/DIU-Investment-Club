@@ -22,6 +22,10 @@ router.patch('/:id/archive', notificationsController.archiveNotification);
 router.get('/preferences', notificationsController.getPreferences);
 router.put('/preferences', notificationsController.updatePreferences);
 
+// Notification Rules Management
+router.get('/rules', notificationsController.getNotificationRules);
+router.patch('/rules/:key', requirePermission('notifications.manage'), notificationsController.updateNotificationRule);
+
 // Dispatch (Administrative / System)
 router.post('/dispatch', requirePermission('notifications.manage'), notificationsController.dispatchNotification);
 

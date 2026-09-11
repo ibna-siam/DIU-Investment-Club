@@ -69,6 +69,19 @@ router.patch(
   (req, res) => emailController.updateAutomationSettings(req, res)
 );
 
+// 17 Standard Email Automation Rules Management
+router.get(
+  '/automation-rules',
+  requireRole('SUPER_ADMIN', 'ADMIN', 'PRESIDENT', 'GENERAL_SECRETARY', 'TREASURER'),
+  (req, res) => emailController.getAutomationRules(req, res)
+);
+
+router.patch(
+  '/automation-rules/:key',
+  requireRole('SUPER_ADMIN', 'ADMIN'),
+  (req, res) => emailController.toggleAutomationRule(req, res)
+);
+
 // Section 7: Safe Super Admin "Send Test Email" Function
 router.post(
   '/send-test-email',

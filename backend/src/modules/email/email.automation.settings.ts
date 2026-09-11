@@ -1,213 +1,213 @@
 /**
- * DIU Investment Club - Dynamic Email Automation Settings & Environment Mode Manager
+ * DIU Investment Club - Dynamic Email Automation Settings & 17 Standard Rules Manager
  *
  * Implements:
  * - Dynamic rule enablement/disablement for Super Admin without code changes
- * - Clear separation between LIVE MODE and TEST MODE
- * - Safe test email recipient routing for manual diagnostics
+ * - Full database persistence for 17 standard automation rules in Supabase
+ * - In-memory cache for instant zero-latency lookups in email queue
+ * - Environment mode management (LIVE vs TEST)
  */
 
 import { settingsRepository } from '../settings/settings.repository';
 import { isValidEmail } from './email.security';
+import { getDbAdmin, isSupabaseConfigured } from '../../config/supabase';
 
-export interface EmailAutomationRuleConfig {
-  key: string;
+export interface EmailAutomationRuleEntity {
+  id: string;
+  rule_key: string;
   name: string;
   description: string;
-  enabled: boolean;
+  trigger_event: string;
+  recipient_logic: string;
+  template_key: string;
   category: 'MEMBERSHIP' | 'FINANCIAL' | 'TASKS' | 'MEETINGS' | 'EVENTS' | 'SECURITY';
-  isProtected?: boolean; // Security alerts cannot be disabled by non-super-admins
+  enabled: boolean;
+  is_protected: boolean;
+  updated_at: string;
+  updated_by?: string;
 }
 
 export interface EmailAutomationSettings {
   environmentMode: 'LIVE' | 'TEST';
   testRecipientEmail: string;
-  rules: {
-    newMemberWelcome: boolean;
-    expenseApproval: boolean;
-    taskAssignment: boolean;
-    meetingReminder: boolean;
-    eventReminder: boolean;
-    securityAlert: boolean;
-  };
+  rules: Record<string, boolean>;
 }
 
 const DEFAULT_SETTINGS: EmailAutomationSettings = {
   environmentMode: 'LIVE',
   testRecipientEmail: 'siamibna75@gmail.com',
   rules: {
-    newMemberWelcome: true,
-    expenseApproval: true,
-    taskAssignment: true,
-    meetingReminder: true,
-    eventReminder: true,
-    securityAlert: true,
+    new_member_welcome: true,
+    system_user_welcome: true,
+    account_invitation: true,
+    member_payment_confirmation: true,
+    payment_verification: true,
+    payment_rejection: true,
+    expense_approval_request: true,
+    expense_approved: true,
+    expense_rejected: true,
+    task_assignment: true,
+    task_reminder: true,
+    meeting_scheduled: true,
+    meeting_reminder: true,
+    event_announcement: true,
+    event_reminder: true,
+    password_reset: true,
+    security_alert: true,
   },
 };
 
-// In-memory cache for instant non-blocking lookups in email queue
-let cachedSettings: EmailAutomationSettings = { ...DEFAULT_SETTINGS };
-
 export class EmailAutomationManager {
+  private inMemoryRules: Map<string, EmailAutomationRuleEntity> = new Map();
+  private environmentMode: 'LIVE' | 'TEST' = 'LIVE';
+  private testRecipientEmail: string = 'siamibna75@gmail.com';
+  private lastRefreshedAt: number = 0;
+
   constructor() {
-    this.refreshFromSettingsRepository();
+    this.refreshSettingsSync();
+    this.refreshRulesFromDb().catch(() => {});
   }
 
   /**
-   * Sync memory cache from system_settings cache
+   * Synchronous refresh of general environment settings
    */
-  public refreshFromSettingsRepository(): void {
+  public refreshSettingsSync(): void {
     try {
       const defaultMode = (process.env.EMAIL_MODE || DEFAULT_SETTINGS.environmentMode).trim().toUpperCase();
       const mode = settingsRepository.getSync('email_environment_mode', defaultMode);
       const defaultTestEmail = process.env.RESEND_TEST_RECIPIENT || DEFAULT_SETTINGS.testRecipientEmail;
       const testEmail = settingsRepository.getSync('email_test_recipient', defaultTestEmail);
-      const memberWelcome = settingsRepository.getSync('auto_member_welcome_enabled', DEFAULT_SETTINGS.rules.newMemberWelcome);
-      const expenseApproval = settingsRepository.getSync('auto_expense_approval_enabled', DEFAULT_SETTINGS.rules.expenseApproval);
-      const taskAssignment = settingsRepository.getSync('auto_task_assignment_enabled', DEFAULT_SETTINGS.rules.taskAssignment);
-      const meetingReminder = settingsRepository.getSync('auto_meeting_reminder_enabled', DEFAULT_SETTINGS.rules.meetingReminder);
-      const eventReminder = settingsRepository.getSync('auto_event_reminder_enabled', DEFAULT_SETTINGS.rules.eventReminder);
-      const securityAlert = settingsRepository.getSync('auto_security_alert_enabled', DEFAULT_SETTINGS.rules.securityAlert);
 
-      cachedSettings = {
-        environmentMode: mode === 'TEST' ? 'TEST' : 'LIVE',
-        testRecipientEmail: typeof testEmail === 'string' && isValidEmail(testEmail) ? testEmail : 'siamibna75@gmail.com',
-        rules: {
-          newMemberWelcome: Boolean(memberWelcome),
-          expenseApproval: Boolean(expenseApproval),
-          taskAssignment: Boolean(taskAssignment),
-          meetingReminder: Boolean(meetingReminder),
-          eventReminder: Boolean(eventReminder),
-          securityAlert: Boolean(securityAlert),
-        },
-      };
+      this.environmentMode = mode === 'TEST' ? 'TEST' : 'LIVE';
+      this.testRecipientEmail =
+        typeof testEmail === 'string' && isValidEmail(testEmail) ? testEmail : DEFAULT_SETTINGS.testRecipientEmail;
     } catch {
-      cachedSettings = { ...DEFAULT_SETTINGS };
+      this.environmentMode = 'LIVE';
+      this.testRecipientEmail = DEFAULT_SETTINGS.testRecipientEmail;
     }
   }
 
   /**
-   * Retrieve current email automation settings
+   * Asynchronous database sync for 17 rules
+   */
+  public async refreshRulesFromDb(): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { data, error } = await getDbAdmin()
+        .from('email_automation_rules')
+        .select('*')
+        .order('category', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        for (const item of data) {
+          this.inMemoryRules.set(item.rule_key, item as EmailAutomationRuleEntity);
+        }
+        this.lastRefreshedAt = Date.now();
+      }
+    } catch (err) {
+      console.warn('⚠️ [EmailAutomationManager] Failed to refresh rules from DB:', (err as any)?.message);
+    }
+  }
+
+  /**
+   * Retrieve all 17 rules for Admin UI
+   */
+  public async getAllRules(): Promise<EmailAutomationRuleEntity[]> {
+    if (Date.now() - this.lastRefreshedAt > 30000 || this.inMemoryRules.size === 0) {
+      await this.refreshRulesFromDb();
+    }
+    return Array.from(this.inMemoryRules.values());
+  }
+
+  /**
+   * Get formatted rule metadata for admin UI (sync compatibility)
+   */
+  public getRulesMetadata(): Array<{
+    key: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+    category: string;
+    isProtected?: boolean;
+  }> {
+    return Array.from(this.inMemoryRules.values()).map((r) => ({
+      key: r.rule_key,
+      name: r.name,
+      description: r.description,
+      enabled: r.enabled,
+      category: r.category,
+      isProtected: r.is_protected,
+    }));
+  }
+
+  /**
+   * Toggle a specific rule on or off
+   */
+  public async toggleRule(ruleKey: string, enabled: boolean, updatedBy?: string): Promise<EmailAutomationRuleEntity | null> {
+    const existing = this.inMemoryRules.get(ruleKey);
+    if (existing?.is_protected && !enabled) {
+      throw new Error(`Rule "${existing.name}" is protected for security and cannot be disabled.`);
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (existing) {
+      existing.enabled = enabled;
+      existing.updated_at = nowIso;
+      if (updatedBy) existing.updated_by = updatedBy;
+      this.inMemoryRules.set(ruleKey, existing);
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await getDbAdmin()
+          .from('email_automation_rules')
+          .update({
+            enabled,
+            updated_at: nowIso,
+            updated_by: updatedBy || null,
+          })
+          .eq('rule_key', ruleKey)
+          .select()
+          .single();
+
+        if (!error && data) {
+          const rule = data as EmailAutomationRuleEntity;
+          this.inMemoryRules.set(ruleKey, rule);
+          return rule;
+        }
+      } catch (err) {
+        console.warn(`⚠️ [EmailAutomationManager] Failed to update rule ${ruleKey} in DB:`, (err as any)?.message);
+      }
+    }
+
+    return existing || null;
+  }
+
+  /**
+   * Retrieve general settings object
    */
   public getSettings(): EmailAutomationSettings {
-    this.refreshFromSettingsRepository();
-    return { ...cachedSettings };
+    this.refreshSettingsSync();
+    const rulesObj: Record<string, boolean> = {};
+    for (const [key, rule] of this.inMemoryRules.entries()) {
+      rulesObj[key] = rule.enabled;
+    }
+    return {
+      environmentMode: this.environmentMode,
+      testRecipientEmail: this.testRecipientEmail,
+      rules: { ...DEFAULT_SETTINGS.rules, ...rulesObj },
+    };
   }
 
   /**
-   * Get formatted rule metadata for admin UI
-   */
-  public getRulesMetadata(): EmailAutomationRuleConfig[] {
-    const s = this.getSettings();
-    return [
-      {
-        key: 'newMemberWelcome',
-        name: 'New Member Welcome Email',
-        description: 'Automatically send an official club welcome email to new members upon registration in Member Directory.',
-        enabled: s.rules.newMemberWelcome,
-        category: 'MEMBERSHIP',
-      },
-      {
-        key: 'expenseApproval',
-        name: 'Expense Approval Email',
-        description: 'Notify approvers upon expense claim submission, and notify claimants upon approval or rejection.',
-        enabled: s.rules.expenseApproval,
-        category: 'FINANCIAL',
-      },
-      {
-        key: 'taskAssignment',
-        name: 'Task Assignment Email',
-        description: 'Send direct action assignments and priority instructions when a task is delegated to a team member.',
-        enabled: s.rules.taskAssignment,
-        category: 'TASKS',
-      },
-      {
-        key: 'meetingReminder',
-        name: 'Meeting Reminder Email',
-        description: 'Dispatch calendar meeting invitations, agendas, and venue details to selected participants.',
-        enabled: s.rules.meetingReminder,
-        category: 'MEETINGS',
-      },
-      {
-        key: 'eventReminder',
-        name: 'Event Reminder Email',
-        description: 'Deliver event announcements, logistical briefings, and reminder notices to registered members.',
-        enabled: s.rules.eventReminder,
-        category: 'EVENTS',
-      },
-      {
-        key: 'securityAlert',
-        name: 'Security Alert Email',
-        description: 'Dispatch account status changes, password updates, and administrative security notices.',
-        enabled: s.rules.securityAlert,
-        category: 'SECURITY',
-        isProtected: true,
-      },
-    ];
-  }
-
-  /**
-   * Check whether a specific email job type is allowed by automation settings
-   */
-  public isEmailAllowed(emailType: string, relatedEntityType?: string | null): { allowed: boolean; reason?: string } {
-    const s = this.getSettings();
-
-    // 1. Member Welcome Email
-    if (
-      emailType === 'MEMBER_WELCOME' ||
-      (emailType === 'WELCOME' && relatedEntityType === 'member')
-    ) {
-      if (!s.rules.newMemberWelcome) {
-        return { allowed: false, reason: 'Automation disabled: New Member Welcome Email is toggled OFF by Super Admin' };
-      }
-    }
-
-    // 2. Expense Approvals & Status Notifications
-    if (['EXPENSE_SUBMITTED', 'EXPENSE_APPROVED', 'EXPENSE_REJECTED'].includes(emailType)) {
-      if (!s.rules.expenseApproval) {
-        return { allowed: false, reason: 'Automation disabled: Expense Approval Email is toggled OFF by Super Admin' };
-      }
-    }
-
-    // 3. Task Assignment
-    if (emailType === 'TASK_ASSIGNED') {
-      if (!s.rules.taskAssignment) {
-        return { allowed: false, reason: 'Automation disabled: Task Assignment Email is toggled OFF by Super Admin' };
-      }
-    }
-
-    // 4. Meeting Reminders
-    if (emailType === 'MEETING_INVITATION') {
-      if (!s.rules.meetingReminder) {
-        return { allowed: false, reason: 'Automation disabled: Meeting Reminder Email is toggled OFF by Super Admin' };
-      }
-    }
-
-    // 5. Event Reminders
-    if (emailType === 'EVENT_NOTIFICATION') {
-      if (!s.rules.eventReminder) {
-        return { allowed: false, reason: 'Automation disabled: Event Reminder Email is toggled OFF by Super Admin' };
-      }
-    }
-
-    // 6. Security & Account Notices
-    if (['PASSWORD_CHANGED', 'ROLE_CHANGED', 'STATUS_CHANGED', 'SECURITY_ALERT'].includes(emailType)) {
-      if (!s.rules.securityAlert) {
-        return { allowed: false, reason: 'Automation disabled: Security Alert Email is toggled OFF by Super Admin' };
-      }
-    }
-
-    return { allowed: true };
-  }
-
-  /**
-   * Update automation settings and persist to system settings
+   * Update general environment settings
    */
   public async updateSettings(
     updates: {
       environmentMode?: 'LIVE' | 'TEST';
       testRecipientEmail?: string;
-      rules?: Partial<EmailAutomationSettings['rules']>;
+      rules?: Record<string, boolean>;
     },
     updatedBy?: string
   ): Promise<EmailAutomationSettings> {
@@ -215,7 +215,7 @@ export class EmailAutomationManager {
 
     if (updates.environmentMode && ['LIVE', 'TEST'].includes(updates.environmentMode)) {
       payloadToPersist.email_environment_mode = updates.environmentMode;
-      cachedSettings.environmentMode = updates.environmentMode;
+      this.environmentMode = updates.environmentMode;
     }
 
     if (updates.testRecipientEmail !== undefined) {
@@ -224,41 +224,78 @@ export class EmailAutomationManager {
         throw new Error(`Invalid test recipient email address: "${updates.testRecipientEmail}"`);
       }
       payloadToPersist.email_test_recipient = email;
-      cachedSettings.testRecipientEmail = email;
-    }
-
-    if (updates.rules) {
-      if (updates.rules.newMemberWelcome !== undefined) {
-        payloadToPersist.auto_member_welcome_enabled = Boolean(updates.rules.newMemberWelcome);
-        cachedSettings.rules.newMemberWelcome = Boolean(updates.rules.newMemberWelcome);
-      }
-      if (updates.rules.expenseApproval !== undefined) {
-        payloadToPersist.auto_expense_approval_enabled = Boolean(updates.rules.expenseApproval);
-        cachedSettings.rules.expenseApproval = Boolean(updates.rules.expenseApproval);
-      }
-      if (updates.rules.taskAssignment !== undefined) {
-        payloadToPersist.auto_task_assignment_enabled = Boolean(updates.rules.taskAssignment);
-        cachedSettings.rules.taskAssignment = Boolean(updates.rules.taskAssignment);
-      }
-      if (updates.rules.meetingReminder !== undefined) {
-        payloadToPersist.auto_meeting_reminder_enabled = Boolean(updates.rules.meetingReminder);
-        cachedSettings.rules.meetingReminder = Boolean(updates.rules.meetingReminder);
-      }
-      if (updates.rules.eventReminder !== undefined) {
-        payloadToPersist.auto_event_reminder_enabled = Boolean(updates.rules.eventReminder);
-        cachedSettings.rules.eventReminder = Boolean(updates.rules.eventReminder);
-      }
-      if (updates.rules.securityAlert !== undefined) {
-        payloadToPersist.auto_security_alert_enabled = Boolean(updates.rules.securityAlert);
-        cachedSettings.rules.securityAlert = Boolean(updates.rules.securityAlert);
-      }
+      this.testRecipientEmail = email;
     }
 
     if (Object.keys(payloadToPersist).length > 0) {
       await settingsRepository.updateSettings(payloadToPersist, updatedBy);
     }
 
+    if (updates.rules) {
+      for (const [key, enabled] of Object.entries(updates.rules)) {
+        await this.toggleRule(key, Boolean(enabled), updatedBy).catch(() => {});
+      }
+    }
+
     return this.getSettings();
+  }
+
+  /**
+   * Check whether a specific email job type is allowed by automation rules
+   */
+  public isEmailAllowed(emailType: string, relatedEntityType?: string | null): { allowed: boolean; reason?: string } {
+    const typeUpper = (emailType || '').toUpperCase();
+
+    // Map emailType to corresponding rule_key
+    let mappedRuleKey: string | null = null;
+
+    if (typeUpper === 'MEMBER_WELCOME' || (typeUpper === 'WELCOME' && relatedEntityType === 'member')) {
+      mappedRuleKey = 'new_member_welcome';
+    } else if (typeUpper === 'USER_WELCOME' || (typeUpper === 'WELCOME' && relatedEntityType !== 'member')) {
+      mappedRuleKey = 'system_user_welcome';
+    } else if (typeUpper === 'USER_INVITED' || typeUpper === 'ACCOUNT_INVITATION') {
+      mappedRuleKey = 'account_invitation';
+    } else if (typeUpper === 'PAYMENT_CONFIRMATION' || typeUpper === 'PAYMENT_SUBMITTED') {
+      mappedRuleKey = 'member_payment_confirmation';
+    } else if (typeUpper === 'PAYMENT_VERIFIED' || typeUpper === 'PAYMENT_CONFIRMED') {
+      mappedRuleKey = 'payment_verification';
+    } else if (typeUpper === 'PAYMENT_REJECTED') {
+      mappedRuleKey = 'payment_rejection';
+    } else if (typeUpper === 'EXPENSE_SUBMITTED') {
+      mappedRuleKey = 'expense_approval_request';
+    } else if (typeUpper === 'EXPENSE_APPROVED') {
+      mappedRuleKey = 'expense_approved';
+    } else if (typeUpper === 'EXPENSE_REJECTED') {
+      mappedRuleKey = 'expense_rejected';
+    } else if (typeUpper === 'TASK_ASSIGNED') {
+      mappedRuleKey = 'task_assignment';
+    } else if (typeUpper === 'TASK_REMINDER') {
+      mappedRuleKey = 'task_reminder';
+    } else if (typeUpper === 'MEETING_INVITATION' || typeUpper === 'MEETING_SCHEDULED') {
+      mappedRuleKey = 'meeting_scheduled';
+    } else if (typeUpper === 'MEETING_REMINDER') {
+      mappedRuleKey = 'meeting_reminder';
+    } else if (typeUpper === 'EVENT_NOTIFICATION' || typeUpper === 'EVENT_CREATED') {
+      mappedRuleKey = 'event_announcement';
+    } else if (typeUpper === 'EVENT_REMINDER') {
+      mappedRuleKey = 'event_reminder';
+    } else if (typeUpper === 'PASSWORD_RESET' || typeUpper === 'PASSWORD_RESET_REQUESTED') {
+      mappedRuleKey = 'password_reset';
+    } else if (['PASSWORD_CHANGED', 'ROLE_CHANGED', 'STATUS_CHANGED', 'SECURITY_ALERT'].includes(typeUpper)) {
+      mappedRuleKey = 'security_alert';
+    }
+
+    if (mappedRuleKey) {
+      const rule = this.inMemoryRules.get(mappedRuleKey);
+      if (rule && !rule.enabled) {
+        return {
+          allowed: false,
+          reason: `Email automation rule "${rule.name}" is toggled OFF in Communication Center`,
+        };
+      }
+    }
+
+    return { allowed: true };
   }
 }
 

@@ -1,5 +1,6 @@
+import crypto from 'crypto';
 import { getDbAdmin, isSupabaseConfigured } from '../../config/supabase';
-import { NotificationItem, NotificationPreference, NotificationStatus } from '../../types/governance.types';
+import { NotificationItem, NotificationPreference, NotificationStatus, NotificationRuleItem } from '../../types/governance.types';
 import {
   notificationPreferencesManager,
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -125,15 +126,30 @@ export class NotificationsRepository {
   }
 
   /**
-   * Section 11: Accurate real unread count
+   * Section 11: Accurate real unread count using fast DB indexed count query
    */
   async getUnreadCount(userId: string): Promise<number> {
+    if (this.canUseDb()) {
+      try {
+        const { count, error } = await getDbAdmin()
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('is_read', false);
+
+        if (!error && typeof count === 'number') {
+          return count;
+        }
+      } catch (err) {
+        console.warn('⚠️ [NotificationsRepository] DB getUnreadCount failed:', (err as any)?.message);
+      }
+    }
     const unread = await this.getUserNotifications(userId, { status: 'UNREAD', limit: 200 });
     return unread.length;
   }
 
   /**
-   * Section 7: Mark single notification as READ permanently
+   * Section 7: Mark single notification as READ permanently in database and memory
    */
   async markAsRead(id: string, userId: string): Promise<NotificationItem | null> {
     const nowIso = new Date().toISOString();
@@ -166,7 +182,7 @@ export class NotificationsRepository {
       this.inMemoryNotifications.set(id, updated);
     }
 
-    // 2. Update DB
+    // 2. Persist permanently to Supabase DB
     if (this.canUseDb()) {
       try {
         const { data, error } = await getDbAdmin()
@@ -190,6 +206,8 @@ export class NotificationsRepository {
           };
           this.inMemoryNotifications.set(id, merged);
           return merged;
+        } else if (error) {
+          console.warn('⚠️ [NotificationsRepository] DB markAsRead error:', error.message);
         }
       } catch (err) {
         console.warn('⚠️ [NotificationsRepository] DB markAsRead failed:', (err as any)?.message);
@@ -476,15 +494,27 @@ export class NotificationsRepository {
 
     try {
       const memRoles = this.inMemoryUserRoles.get(userId);
-      const userRoles = memRoles ? [] : await usersRepository.getUserRoles(userId);
-      const roleSlugs = memRoles || (userRoles || []).map((r) => r.slug);
+      let roleSlugs = memRoles || [];
+      if (!memRoles && this.canUseDb()) {
+        const { data: userRoles } = await getDbAdmin()
+          .from('user_roles')
+          .select('role:roles(name)')
+          .eq('user_id', userId);
+        if (userRoles) {
+          roleSlugs = userRoles.map((ur: any) =>
+            (ur.role?.name || '').toUpperCase().replace(/[\s-]+/g, '_')
+          );
+          this.inMemoryUserRoles.set(userId, roleSlugs);
+        }
+      }
 
-      // Financial notifications require financial management access
+      // Personal member notices (own receipts, personal expense status) do not require administrative approval rights
+      const isPersonalNotice = ['PAYMENT_CONFIRMED', 'EXPENSE_APPROVED', 'EXPENSE_REJECTED', 'PAYMENT_RECEIPT', 'MEMBERSHIP', 'INFO'].includes(type || '') || cat === 'GENERAL';
+
+      // Administrative financial approval notifications require financial management access
       if (
-        cat.includes('FINANCIAL') ||
-        cat.includes('APPROVAL') ||
-        cat.includes('EXPENSE') ||
-        cat.includes('PAYMENT_APPROVAL')
+        !isPersonalNotice &&
+        (cat.includes('APPROVAL') || cat.includes('PAYMENT_APPROVAL') || cat === 'EXPENSE_SUBMITTED')
       ) {
         const hasFinancialAccess = roleSlugs.some((s) =>
           ['SUPER_ADMIN', 'ADMIN', 'TREASURER', 'PRESIDENT', 'VICE_PRESIDENT'].includes(s)
@@ -602,7 +632,7 @@ export class NotificationsRepository {
     // 4. Section 3: Channel Selection & Delivery
     let createdItem: NotificationItem | null = null;
     const nowIso = new Date().toISOString();
-    const notificationId = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const notificationId = crypto.randomUUID();
 
     // Channel A: In-App Notification
     if (allowInApp) {
@@ -712,6 +742,55 @@ export class NotificationsRepository {
 
     return createdItem;
   }
+
+  /**
+   * Section 4: Notification Rules Management
+   */
+  async getNotificationRules(): Promise<NotificationRuleItem[]> {
+    if (this.canUseDb()) {
+      try {
+        const { data, error } = await getDbAdmin()
+          .from('notification_rules')
+          .select('*')
+          .order('priority', { ascending: false });
+        if (!error && data) {
+          return data as NotificationRuleItem[];
+        }
+      } catch (err) {
+        console.warn('⚠️ [NotificationsRepository] Failed to fetch notification_rules:', (err as any)?.message);
+      }
+    }
+    return [];
+  }
+
+  async updateNotificationRule(
+    ruleKey: string,
+    updates: { enabled?: boolean; delivery_channels?: string[]; priority?: string }
+  ): Promise<NotificationRuleItem | null> {
+    if (this.canUseDb()) {
+      try {
+        const payload: any = { updated_at: new Date().toISOString() };
+        if (typeof updates.enabled === 'boolean') payload.enabled = updates.enabled;
+        if (Array.isArray(updates.delivery_channels)) payload.delivery_channels = updates.delivery_channels;
+        if (updates.priority) payload.priority = updates.priority;
+
+        const { data, error } = await getDbAdmin()
+          .from('notification_rules')
+          .update(payload)
+          .eq('rule_key', ruleKey)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data as NotificationRuleItem;
+        }
+      } catch (err) {
+        console.warn('⚠️ [NotificationsRepository] Failed to update notification rule:', (err as any)?.message);
+      }
+    }
+    return null;
+  }
 }
 
 export const notificationsRepository = new NotificationsRepository();
+

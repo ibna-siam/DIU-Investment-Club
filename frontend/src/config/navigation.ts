@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Webhook,
   CheckSquare,
+  Mail,
 } from 'lucide-react';
 
 export interface NavChildItem {
@@ -176,12 +177,22 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    title: 'Communication Center',
+    href: '/email-automation',
+    icon: Mail,
+    children: [
+      { title: 'Email Automation', href: '/email-automation', permission: 'settings.read' },
+      { title: 'Notification Rules', href: '/notification-rules', permission: 'settings.read' },
+      { title: 'Email Templates', href: '/communication-templates', permission: 'communication_templates.read' },
+      { title: 'Email Logs', href: '/email-logs', permission: 'settings.read' },
+      { title: 'Test Email', href: '/test-email', permission: 'settings.manage' },
+    ],
+  },
+  {
     title: 'Integrations & APIs',
     href: '/integrations',
     icon: Webhook,
     children: [
-      { title: 'Templates', href: '/communication-templates', permission: 'communication_templates.read' },
-      { title: 'Email Management', href: '/email-management', permission: 'settings.read' },
       { title: 'External Services', href: '/integrations', permission: 'integrations.manage' },
       { title: 'Webhooks Hub', href: '/webhooks', permission: 'integrations.manage' },
     ],
@@ -340,6 +351,12 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
   '/compliance': 'compliance.read',
   '/exceptions': 'exceptions.read',
   '/risk-flags': 'risk_flags.read',
+
+  // Communication Center
+  '/email-automation': 'settings.read',
+  '/notification-rules': 'settings.read',
+  '/email-logs': 'settings.read',
+  '/test-email': 'settings.manage',
 
   // Integrations & APIs
   '/integrations': 'integrations.manage',

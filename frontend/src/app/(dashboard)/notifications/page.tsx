@@ -25,9 +25,15 @@ import {
   Smartphone,
   Lock,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../../hooks/useAuth';
+import { ROUTE_PERMISSIONS } from '../../../config/navigation';
 import { useNotificationStore } from '../../../context/NotificationContext';
 
 export default function NotificationsPage() {
+  const { hasPermission } = useAuth();
+  const router = useRouter();
+
   const {
     notifications: storeNotifications,
     loading: storeLoading,
@@ -96,6 +102,36 @@ export default function NotificationsPage() {
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to archive read notifications' });
     }
+  };
+
+  const handleOpenRecord = (notif: NotificationItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const destination = notif.link || (notif as any).action_url;
+    if (!destination) return;
+
+    const baseRoute = destination.split('?')[0].split('#')[0];
+    let requiredPermission: string | undefined;
+
+    for (const [route, perm] of Object.entries(ROUTE_PERMISSIONS)) {
+      if (baseRoute === route || baseRoute.startsWith(route + '/')) {
+        requiredPermission = perm;
+        break;
+      }
+    }
+
+    if (requiredPermission && !hasPermission(requiredPermission)) {
+      setMessage({
+        type: 'error',
+        text: `Access Denied: You do not have permission (${requiredPermission}) to view this resource.`,
+      });
+      return;
+    }
+
+    if (!notif.is_read) {
+      markAsRead(notif.id).catch(() => {});
+    }
+
+    router.push(destination);
   };
 
   const handleTogglePreference = async (key: keyof NotificationPreference) => {
@@ -376,15 +412,15 @@ export default function NotificationsPage() {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                      {notif.link && (
-                        <Link
-                          href={notif.link}
+                      {(notif.link || (notif as any).action_url) && (
+                        <button
+                          onClick={(e) => handleOpenRecord(notif, e)}
                           className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg text-xs font-medium transition flex items-center gap-1"
                           title="Open Related Record"
                         >
                           <ExternalLink className="w-4 h-4" />
                           <span className="hidden md:inline">Open</span>
-                        </Link>
+                        </button>
                       )}
                       {isUnread && (
                         <button

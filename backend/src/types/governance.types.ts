@@ -367,6 +367,21 @@ export interface NotificationItem {
   created_at: string;
 }
 
+export interface NotificationRuleItem {
+  id: string;
+  rule_key: string;
+  name: string;
+  trigger_event: string;
+  notification_type: string;
+  recipient_type: string;
+  recipient_role: string;
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' | 'CRITICAL';
+  enabled: boolean;
+  delivery_channels: ('IN_APP' | 'EMAIL' | 'SMS')[];
+  updated_at: string;
+  updated_by?: string;
+}
+
 export interface NotificationPreference {
   id?: string;
   user_id: string;

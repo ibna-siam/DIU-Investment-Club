@@ -5,10 +5,14 @@ import { rolesRepository } from './modules/roles/roles.repository';
 import { usersRepository } from './modules/users/users.repository';
 import { automationScheduler } from './modules/automation/automation.scheduler';
 import { emailQueue } from './modules/email/email.queue';
+import { notificationEventsBridge } from './modules/notifications/notification.events.bridge';
 import bcrypt from 'bcryptjs';
 
 const startServer = async () => {
   const app = createApp();
+
+  // Initialize domain notification bridge
+  notificationEventsBridge.init();
 
   // Pre-seed an initial admin if database is fresh
   try {
