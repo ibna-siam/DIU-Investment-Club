@@ -26,7 +26,6 @@ const PROTECTED_ACCOUNT_NAMES = [
   'Club Petty Cash Fund',
   'Modile Banking (Bkash)',
   'Mobile Banking (Bkash)',
-  'Primary Operating Bank A/C',
 ];
 
 async function executeCleanup() {

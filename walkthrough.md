@@ -74,7 +74,7 @@ graph TD
 
 ### 2. Operating Financial Accounts (`financial_accounts`)
 - **Club Petty Cash Fund** (`d95272c5-6925-4720-b1b5-bab7e4060fe9`): CASH | Balance: ৳0.00 | Status: ACTIVE
-- **Primary Operating Bank A/C** (`daa50c57-4048-4fc2-a032-60c354af0e53`): BANK | Balance: ৳0.00 | Status: ACTIVE
+- *(Primary Operating Bank A/C was removed per administrative instruction)*
 
 ### 3. Student / Member Records
 - 0 records (Pristine clean state for fresh member enrollment)

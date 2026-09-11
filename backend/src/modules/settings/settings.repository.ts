@@ -91,7 +91,7 @@ export class SettingsRepository {
         }
         return result;
       }
-    } catch (err) {}
+    } catch (err) { }
 
     return { ...inMemoryCache };
   }
@@ -124,7 +124,7 @@ export class SettingsRepository {
           }
           return grouped;
         }
-      } catch (err) {}
+      } catch (err) { }
     }
 
     try {
@@ -145,7 +145,7 @@ export class SettingsRepository {
         }
         return grouped;
       }
-    } catch (err) {}
+    } catch (err) { }
 
     return grouped;
   }
@@ -188,7 +188,7 @@ export class SettingsRepository {
            WHERE key = $3`,
           [JSON.stringify(value), updatedBy || null, key]
         );
-      } catch (err) {}
+      } catch (err) { }
     }
     return true;
   }
