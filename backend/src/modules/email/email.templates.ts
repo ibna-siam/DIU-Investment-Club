@@ -1009,7 +1009,7 @@ export function renderAccountInvitationEmail(params: {
     preheader: `Your account is ready. Complete your setup for ${EMAIL_BRAND.name}.`,
     content,
     actionButton: {
-      label: 'Access Your Account',
+      label: 'Set Your Password',
       url: params.setupUrl,
     },
     recipientEmail: params.recipientEmail,
@@ -1029,7 +1029,7 @@ DETAILS:
 - Affiliation: ${EMAIL_BRAND.university}
 
 Please establish your confidential password and access your account using this secure link:
-Access Your Account: ${params.setupUrl}
+Set Your Password: ${params.setupUrl}
 
 This link expires in ${hours} hours.
 

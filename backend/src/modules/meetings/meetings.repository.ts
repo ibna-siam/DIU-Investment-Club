@@ -103,6 +103,9 @@ export class MeetingsRepository {
     location?: string;
     meeting_link?: string;
     committee_id?: string;
+    participant_ids?: string[];
+    participant_emails?: string[];
+    reminder_settings?: any;
     created_by?: string;
   }): Promise<Meeting> {
     const { data, error } = await getDbAdmin()
@@ -117,6 +120,9 @@ export class MeetingsRepository {
         location: payload.location || 'DIU Main Campus / Virtual',
         meeting_link: payload.meeting_link,
         committee_id: payload.committee_id || null,
+        participant_ids: payload.participant_ids || [],
+        participant_emails: payload.participant_emails || [],
+        reminder_settings: payload.reminder_settings || null,
         status: 'SCHEDULED',
         created_by: payload.created_by || null,
       })

@@ -148,6 +148,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
+  const userRolesKey = useMemo(() => {
+    return (user?.roles?.map((r) => r.slug) || []).sort().join(',');
+  }, [user?.roles]);
+
+  const userPermsKey = useMemo(() => {
+    return (user?.permissions || []).sort().join(',');
+  }, [user?.permissions]);
+
   // Pre-computed O(1) permission cache for instantaneous UI checks without repeated string parsing
   const { permissionSet, hasSuperAdmin, modulePrefixes } = useMemo(() => {
     const set = new Set<string>();
@@ -165,14 +173,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return { permissionSet: set, hasSuperAdmin: isSuper, modulePrefixes: prefixes };
-  }, [user]);
+  }, [userRolesKey, userPermsKey]);
 
   const hasRole = useCallback((roles: string | string[]): boolean => {
     if (!user || !user.roles) return false;
     if (hasSuperAdmin) return true;
     const targetRoles = Array.isArray(roles) ? roles : [roles];
     return user.roles.some((r) => targetRoles.includes(r.slug));
-  }, [user, hasSuperAdmin]);
+  }, [userRolesKey, hasSuperAdmin]);
 
   const hasPermission = useCallback((permission: string): boolean => {
     if (!user) return false;
@@ -211,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!action && modulePrefixes.has(module)) return true;
 
     return false;
-  }, [user, hasSuperAdmin, permissionSet, modulePrefixes]);
+  }, [hasSuperAdmin, permissionSet, modulePrefixes]);
 
   const contextValue = useMemo<AuthContextType>(() => ({
     user,

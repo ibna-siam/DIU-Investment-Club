@@ -34,6 +34,18 @@ export default function CreateEventPage() {
     proposed_budget: '',
   });
 
+  // Audience & Notification State (Default to NONE)
+  const [targetAudience, setTargetAudience] = useState<
+    'NONE' | 'ALL_ACTIVE_MEMBERS' | 'EXECUTIVE' | 'ROLES' | 'MEMBERS'
+  >('NONE');
+  const [targetEmails, setTargetEmails] = useState<string>('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([
+    'Executive Member',
+    'Treasurer',
+    'General Secretary',
+    'President',
+  ]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -71,6 +83,11 @@ export default function CreateEventPage() {
 
     try {
       setSubmitting(true);
+      const parsedEmails = targetEmails
+        .split(/[\n,]+/)
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => e.includes('@'));
+
       const res = await eventsService.createEvent({
         title: formData.title.trim(),
         event_type: formData.event_type,
@@ -82,6 +99,10 @@ export default function CreateEventPage() {
           ? parseInt(formData.expected_participants, 10)
           : undefined,
         proposed_budget: budgetNum,
+        target_audience: targetAudience,
+        target_emails: targetAudience === 'MEMBERS' ? parsedEmails : undefined,
+        target_roles: targetAudience === 'ROLES' ? selectedRoles : undefined,
+        notify_members: targetAudience !== 'NONE',
       });
 
       if (res.success && res.data?.id) {
@@ -277,6 +298,179 @@ export default function CreateEventPage() {
             placeholder="Outline objectives, special guest speakers, agendas, or target participant outcomes..."
             className="w-full px-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 transition resize-none"
           />
+        </div>
+
+        {/* Event Audience & Announcement Notification */}
+        <div className="border-t border-slate-800/80 pt-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Target Audience & Announcement
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Control who receives email invitations and in-portal alerts for this event.
+              </p>
+            </div>
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              Default: No Spam
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <label
+              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                targetAudience === 'NONE'
+                  ? 'bg-emerald-950/30 border-emerald-500/60 text-white'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <input
+                type="radio"
+                name="targetAudience"
+                value="NONE"
+                checked={targetAudience === 'NONE'}
+                onChange={() => setTargetAudience('NONE')}
+                className="mt-0.5 text-emerald-500"
+              />
+              <div>
+                <span className="font-semibold block text-slate-200">No Email Announcement (Recommended)</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">
+                  Creates event in draft mode. Zero automated emails are sent out.
+                </span>
+              </div>
+            </label>
+
+            <label
+              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                targetAudience === 'EXECUTIVE'
+                  ? 'bg-emerald-950/30 border-emerald-500/60 text-white'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <input
+                type="radio"
+                name="targetAudience"
+                value="EXECUTIVE"
+                checked={targetAudience === 'EXECUTIVE'}
+                onChange={() => setTargetAudience('EXECUTIVE')}
+                className="mt-0.5 text-emerald-500"
+              />
+              <div>
+                <span className="font-semibold block text-slate-200">Executive Committee Only</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">
+                  Sends notice exclusively to President, General Secretary, Treasurer, and Executive members.
+                </span>
+              </div>
+            </label>
+
+            <label
+              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                targetAudience === 'ROLES'
+                  ? 'bg-emerald-950/30 border-emerald-500/60 text-white'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <input
+                type="radio"
+                name="targetAudience"
+                value="ROLES"
+                checked={targetAudience === 'ROLES'}
+                onChange={() => setTargetAudience('ROLES')}
+                className="mt-0.5 text-emerald-500"
+              />
+              <div>
+                <span className="font-semibold block text-slate-200">Specific Roles</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">
+                  Target custom officer designations and committee roles.
+                </span>
+              </div>
+            </label>
+
+            <label
+              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-start gap-3 ${
+                targetAudience === 'MEMBERS'
+                  ? 'bg-emerald-950/30 border-emerald-500/60 text-white'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <input
+                type="radio"
+                name="targetAudience"
+                value="MEMBERS"
+                checked={targetAudience === 'MEMBERS'}
+                onChange={() => setTargetAudience('MEMBERS')}
+                className="mt-0.5 text-emerald-500"
+              />
+              <div>
+                <span className="font-semibold block text-slate-200">Specific Email List</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">
+                  Enter specific attendee or partner email addresses.
+                </span>
+              </div>
+            </label>
+
+            <label
+              className={`p-3.5 rounded-xl border cursor-pointer transition flex items-start gap-3 sm:col-span-2 ${
+                targetAudience === 'ALL_ACTIVE_MEMBERS'
+                  ? 'bg-amber-950/30 border-amber-500/60 text-white'
+                  : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <input
+                type="radio"
+                name="targetAudience"
+                value="ALL_ACTIVE_MEMBERS"
+                checked={targetAudience === 'ALL_ACTIVE_MEMBERS'}
+                onChange={() => setTargetAudience('ALL_ACTIVE_MEMBERS')}
+                className="mt-0.5 text-amber-500"
+              />
+              <div>
+                <span className="font-semibold block text-amber-300">Broadcast to All Active Club Members</span>
+                <span className="text-[11px] text-slate-400 block mt-0.5">
+                  Sends an official club-wide email announcement to every registered active member.
+                </span>
+              </div>
+            </label>
+          </div>
+
+          {targetAudience === 'ROLES' && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 space-y-2">
+              <span className="text-xs font-semibold text-slate-300 block">Select Roles to Notify:</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                {['President', 'General Secretary', 'Treasurer', 'Executive Member', 'Advisor', 'Member'].map((role) => (
+                  <label key={role} className="flex items-center gap-2 cursor-pointer text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoles.includes(role)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRoles([...selectedRoles, role]);
+                        } else {
+                          setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                        }
+                      }}
+                      className="rounded border-slate-700 bg-slate-800 text-emerald-500"
+                    />
+                    <span>{role}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {targetAudience === 'MEMBERS' && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 block">Recipient Emails (comma or newline separated):</label>
+              <textarea
+                rows={2}
+                placeholder="name@diu.edu.bd, member2@example.com"
+                value={targetEmails}
+                onChange={(e) => setTargetEmails(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          )}
         </div>
 
         {/* Submit Actions */}

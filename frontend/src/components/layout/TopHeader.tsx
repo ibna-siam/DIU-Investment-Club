@@ -16,7 +16,7 @@ export function TopHeader({ onOpenMobileMenu, title = 'Financial Management Syst
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-800/80 bg-slate-900/90 px-4 sm:px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-slate-800 bg-slate-900 px-4 sm:px-6">
       {/* Left: Mobile Toggle & Page Title */}
       <div className="flex items-center space-x-3">
         <button

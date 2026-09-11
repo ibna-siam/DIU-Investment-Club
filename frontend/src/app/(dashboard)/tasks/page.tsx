@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { api } from '../../../lib/api';
 import { governanceService } from '../../../services/governance.service';
 import { ClubTask, TaskPriority, TaskStatus } from '../../../types/governance';
 import {
@@ -31,6 +32,9 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
 
+  // Users list for assignment
+  const [usersList, setUsersList] = useState<any[]>([]);
+
   // Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTask, setNewTask] = useState({
@@ -38,6 +42,7 @@ export default function TasksPage() {
     description: '',
     priority: 'HIGH' as TaskPriority,
     due_date: new Date().toISOString().split('T')[0],
+    assigned_to: '',
   });
 
   // Task Safe Deletion / Cancellation Modal (Sections 14 & 15)
@@ -68,12 +73,34 @@ export default function TasksPage() {
     loadTasks();
   }, [priorityFilter]);
 
+  useEffect(() => {
+    api
+      .get<any>('/users?status=active&limit=100')
+      .then((res) => {
+        if (res?.data && Array.isArray(res.data)) {
+          setUsersList(res.data);
+        } else if (res?.users && Array.isArray(res.users)) {
+          setUsersList(res.users);
+        }
+      })
+      .catch((err) => console.warn('Could not load users for task assignment:', err));
+  }, []);
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
     try {
-      const created = await governanceService.createTask(newTask);
+      const payload: any = {
+        title: newTask.title,
+        description: newTask.description,
+        priority: newTask.priority,
+        due_date: newTask.due_date,
+      };
+      if (newTask.assigned_to) {
+        payload.assigned_to = newTask.assigned_to;
+      }
+      const created = await governanceService.createTask(payload);
       setMessage({ type: 'success', text: `Task "${created.title}" created successfully!` });
       setShowCreateModal(false);
       setNewTask({
@@ -81,6 +108,7 @@ export default function TasksPage() {
         description: '',
         priority: 'HIGH',
         due_date: new Date().toISOString().split('T')[0],
+        assigned_to: '',
       });
       loadTasks();
     } catch (err: any) {
@@ -446,6 +474,30 @@ export default function TasksPage() {
                   onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Assign To <span className="text-slate-500 font-normal">(Direct Assignee Only)</span>
+                </label>
+                <select
+                  value={newTask.assigned_to}
+                  onChange={(e) => setNewTask({ ...newTask, assigned_to: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                >
+                  <option value="">Unassigned (Open task)</option>
+                  {usersList.map((u) => {
+                    const roleName = u.roles?.[0]?.name || 'Member';
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} — {roleName} ({u.email})
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Assignment notification and reminders are dispatched exclusively to the assigned user.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

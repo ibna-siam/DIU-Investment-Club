@@ -293,6 +293,11 @@ export class DomainNotificationResolver {
       const enabled = await this.isNotificationRuleEnabled('notif_event_created');
       if (!enabled) return;
 
+      // Strictly suppress notifications if audience is NONE or not enabled
+      if (!event.targetAudience || event.targetAudience === 'NONE') {
+        return;
+      }
+
       let targetUserIds: string[] = [];
 
       if (event.targetAudience === 'EXECUTIVE') {
@@ -303,14 +308,17 @@ export class DomainNotificationResolver {
           'Executive Member',
           'Event Manager',
         ]);
-      } else if (event.targetAudience === 'CUSTOM' && event.targetEmails && event.targetEmails.length > 0) {
+      } else if (event.targetAudience === 'ROLES' && (event as any).targetRoles && (event as any).targetRoles.length > 0) {
+        targetUserIds = await this.resolveUserIdsByRoles((event as any).targetRoles);
+      } else if ((event.targetAudience === 'CUSTOM' || event.targetAudience === 'MEMBERS') && event.targetEmails && event.targetEmails.length > 0) {
         targetUserIds = await this.resolveUserIdsByEmails(event.targetEmails);
-      } else {
-        // ALL ACTIVE: notify active users
+      } else if (event.targetAudience === 'ALL_ACTIVE_MEMBERS' || event.targetAudience === 'ALL') {
+        // Only if explicitly requested to notify ALL active members
         if (isSupabaseConfigured()) {
           const { data } = await getDbAdmin()
             .from('profiles')
             .select('id')
+            .eq('status', 'active')
             .limit(200);
           if (data) targetUserIds = data.map((d: any) => d.id);
         }

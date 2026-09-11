@@ -76,8 +76,9 @@ export interface EventCreatedEvent {
   location?: string;
   summary?: string;
   bannerUrl?: string;
-  targetAudience?: 'ALL' | 'EXECUTIVE' | 'TIER' | 'CUSTOM';
+  targetAudience?: 'ALL' | 'ALL_ACTIVE_MEMBERS' | 'EXECUTIVE' | 'TIER' | 'CUSTOM' | 'ROLES' | 'MEMBERS' | 'NONE';
   targetEmails?: string[];
+  targetRoles?: string[];
   createdBy?: string;
 }
 

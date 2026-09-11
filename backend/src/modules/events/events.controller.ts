@@ -125,8 +125,9 @@ export class EventsController {
 
       const event = await eventsService.createEvent(req.body, userId);
 
-      // Emit EVENT_CREATED domain event after database creation succeeds
-      const shouldNotify = req.body.notify_members !== false && req.body.target_audience !== 'NONE';
+      // Emit EVENT_CREATED domain event only if explicitly configured (defaults to NONE)
+      const audience = req.body.target_audience || 'NONE';
+      const shouldNotify = audience !== 'NONE' && req.body.notify_members !== false;
       if (shouldNotify) {
         try {
           emailEventBus.emitEvent({
@@ -139,7 +140,7 @@ export class EventsController {
               location: event.location || 'DIU Auditorium, Daffodil Smart City',
               summary: event.short_description || event.description || undefined,
               bannerUrl: (event as any).banner_image || (event as any).banner_url || undefined,
-              targetAudience: req.body.target_audience || 'ALL',
+              targetAudience: audience,
               targetEmails: req.body.target_emails || undefined,
               createdBy: userId,
             },

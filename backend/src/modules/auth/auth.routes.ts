@@ -24,7 +24,10 @@ router.post('/reset-password', (req, res, next) => {
 router.post('/verify-email/request', authenticate, (req, res, next) => authController.requestEmailVerification(req, res, next));
 router.post('/verify-email/confirm', (req, res, next) => authController.confirmEmailVerification(req, res, next));
 
-// Initial Setup
+// Initial Setup & Secure Account Invitation Setup
+router.get('/setup/validate', (req, res, next) => authController.validateSetupToken(req, res, next));
+router.post('/setup/validate', (req, res, next) => authController.validateSetupToken(req, res, next));
+router.post('/setup/confirm', passwordResetLimiter, (req, res, next) => authController.confirmAccountSetup(req, res, next));
 router.post('/setup-admin', (req, res, next) => authController.setupInitialAdmin(req, res, next));
 
 export default router;

@@ -216,6 +216,13 @@ export const governanceService = {
     location?: string;
     meeting_link?: string;
     committee_id?: string;
+    participant_ids?: string[];
+    participant_emails?: string[];
+    reminder_settings?: {
+      immediate?: boolean;
+      before24h?: boolean;
+      before1h?: boolean;
+    };
   }): Promise<Meeting> {
     const res = await api.post<any>('/meetings', data);
     return res.data;

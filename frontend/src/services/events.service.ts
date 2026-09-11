@@ -53,6 +53,10 @@ export const eventsService = {
     expected_participants?: number;
     proposed_budget: number;
     banner_url?: string;
+    target_audience?: string;
+    target_emails?: string[];
+    target_roles?: string[];
+    notify_members?: boolean;
   }): Promise<{ success: boolean; data: Event }> {
     return api.post<{ success: boolean; data: Event }>('/events', data);
   },

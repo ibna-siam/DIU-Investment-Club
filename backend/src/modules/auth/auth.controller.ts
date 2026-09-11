@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { z } from 'zod';
 import { env, getPrimaryClientUrl } from '../../config/env';
 import { supabaseAdmin, supabaseClient, isSupabaseConfigured, getDbAdmin } from '../../config/supabase';
@@ -254,12 +255,34 @@ export class AuthController {
       }
 
       if (isSupabaseConfigured()) {
-        if (supabaseAdmin) {
-          const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
-          if (error) throw error;
-        } else if (supabaseClient) {
-          const { error } = await supabaseClient.auth.updateUser({ password });
-          if (error) console.warn('Supabase updateUser notice:', error.message);
+        const client = getDbAdmin();
+        let updated = false;
+
+        // 1. Try secure SECURITY DEFINER RPC to update auth.users encrypted_password directly
+        try {
+          const { error: rpcErr } = await client.rpc('admin_set_user_password', {
+            p_user_id: userId,
+            p_new_password: password,
+          });
+          if (!rpcErr) {
+            updated = true;
+          } else {
+            console.warn('RPC admin_set_user_password warning:', rpcErr.message);
+          }
+        } catch (rpcEx: any) {
+          console.warn('RPC admin_set_user_password exception:', rpcEx.message);
+        }
+
+        // 2. Fall back to Supabase Admin API or Client API
+        if (!updated) {
+          if (supabaseAdmin) {
+            const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+            if (error) throw error;
+            updated = true;
+          } else if (supabaseClient) {
+            const { error } = await supabaseClient.auth.updateUser({ password });
+            if (error) console.warn('Supabase updateUser notice:', error.message);
+          }
         }
       } else {
         const hash = await bcrypt.hash(password, 10);
@@ -510,6 +533,168 @@ export class AuthController {
           user: hydrated,
           token,
         },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async validateSetupToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const token = ((req.query.token as string) || (req.body?.token as string) || '').trim();
+      if (!token) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'TOKEN_REQUIRED', message: 'Setup token is required' },
+        });
+        return;
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const client = getDbAdmin();
+
+      const { data: record, error: findError } = await client
+        .from('account_setup_tokens')
+        .select('*')
+        .eq('token_hash', tokenHash)
+        .is('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (findError || !record) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_TOKEN',
+            message: 'This invitation or setup link is invalid, expired, or has already been used.',
+          },
+        });
+        return;
+      }
+
+      const profile = await usersRepository.findById(record.user_id);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          valid: true,
+          email: profile?.email || null,
+          full_name: profile?.full_name || null,
+          user_id: record.user_id,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async confirmAccountSetup(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, password } = req.body;
+      if (!token || typeof token !== 'string') {
+        res.status(400).json({
+          success: false,
+          error: { code: 'TOKEN_REQUIRED', message: 'Setup token is required' },
+        });
+        return;
+      }
+
+      if (!password || typeof password !== 'string' || password.length < 8) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'WEAK_PASSWORD', message: 'Password must be at least 8 characters long' },
+        });
+        return;
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+      const client = getDbAdmin();
+
+      const { data: record, error: findError } = await client
+        .from('account_setup_tokens')
+        .select('*')
+        .eq('token_hash', tokenHash)
+        .is('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (findError || !record) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_TOKEN',
+            message: 'This invitation or setup link is invalid, expired, or has already been used.',
+          },
+        });
+        return;
+      }
+
+      const userId = record.user_id;
+
+      // 1. Update password in Supabase GoTrue via SECURITY DEFINER function
+      if (isSupabaseConfigured()) {
+        const { error: rpcErr } = await client.rpc('admin_set_user_password', {
+          p_user_id: userId,
+          p_new_password: password,
+        });
+
+        if (rpcErr) {
+          console.error('❌ [confirmAccountSetup] RPC error:', rpcErr);
+          if (supabaseAdmin) {
+            const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+            if (error) throw error;
+          } else {
+            throw new Error(`Failed to update user password: ${rpcErr.message}`);
+          }
+        }
+      }
+
+      // Standalone store fallback
+      const hash = await bcrypt.hash(password, 10);
+      const profile = store.profiles.get(userId);
+      if (profile) {
+        profile.password_hash = hash;
+        profile.updated_at = new Date().toISOString();
+      }
+
+      // 2. Mark token as consumed
+      await client
+        .from('account_setup_tokens')
+        .update({ used_at: new Date().toISOString() })
+        .eq('id', record.id);
+
+      // 3. Ensure user status is active
+      const userProfile = await usersRepository.findById(userId);
+      if (userProfile && userProfile.status !== 'active') {
+        await usersRepository.updateStatus(userId, 'active');
+      }
+
+      // 4. Audit log
+      await auditLogsRepository.log({
+        user_id: userId,
+        action: 'ACCOUNT_SETUP_COMPLETED',
+        module: 'auth',
+        record_id: userId,
+        ip_address: req.ip,
+      });
+
+      // 5. Emit PASSWORD_CHANGED security notice
+      if (userProfile?.email) {
+        emailEventBus.emitEvent({
+          type: 'PASSWORD_CHANGED',
+          payload: {
+            userId,
+            email: userProfile.email,
+            fullName: userProfile.full_name || 'Member',
+            changedAt: new Date().toUTCString(),
+            ipAddress: req.ip,
+          },
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Account setup complete! You can now log in with your new password.',
       });
     } catch (err) {
       next(err);

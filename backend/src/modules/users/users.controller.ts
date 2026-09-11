@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware';
 import { usersRepository } from './users.repository';
 import { rolesRepository } from '../roles/roles.repository';
-import { randomUUID } from 'crypto';
-import { supabaseAdmin, isSupabaseConfigured } from '../../config/supabase';
+import crypto, { randomUUID } from 'crypto';
+import { supabaseAdmin, isSupabaseConfigured, getDbAdmin } from '../../config/supabase';
 import { emailEventBus } from '../email/email.events';
 import { auditLogsRepository } from '../audit-logs/audit-logs.repository';
 import { env, getPrimaryClientUrl } from '../../config/env';
@@ -113,32 +113,26 @@ export class UsersController {
         if (role) roleName = role.name;
       }
 
-      // Generate secure setup URL via Supabase Auth or secure token
-      const clientBase = getPrimaryClientUrl();
-      let setupUrl = `${clientBase}/reset-password?setup=true&email=${encodeURIComponent(normalizedEmail)}`;
-      if (isSupabaseConfigured() && supabaseAdmin) {
+      // Generate cryptographic single-use setup token for direct password establishment
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
+      if (isSupabaseConfigured()) {
         try {
-          const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'invite',
-            email: normalizedEmail,
-            options: {
-              redirectTo: `${clientBase}/reset-password?setup=true`,
-            },
+          const client = getDbAdmin();
+          await client.from('account_setup_tokens').insert({
+            user_id: user.id,
+            token_hash: tokenHash,
+            expires_at: expiresAt.toISOString(),
           });
-          if (linkData?.properties?.action_link) {
-            setupUrl = linkData.properties.action_link;
-          }
-        } catch (e: any) {
-          console.warn('Supabase generate invite link notice:', e.message);
+        } catch (tokenErr: any) {
+          console.error('Failed to record account_setup_token in Supabase:', tokenErr.message);
         }
-      } else {
-        const inviteToken = jwt.sign(
-          { id: user.id, email: normalizedEmail, type: 'recovery', purpose: 'account_setup' },
-          env.JWT_SECRET,
-          { expiresIn: '48h' }
-        );
-        setupUrl = `${clientBase}/reset-password?token=${inviteToken}&setup=true`;
       }
+
+      const clientBase = getPrimaryClientUrl();
+      const setupUrl = `${clientBase}/account-setup?token=${rawToken}`;
 
       // 1. Emit domain event for asynchronous Welcome Email
       emailEventBus.emitEvent({

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { api } from '../../../lib/api';
 import { governanceService } from '../../../services/governance.service';
 import { Meeting, MeetingType, MeetingStatus, ClubCommittee } from '../../../types/governance';
 import {
@@ -22,17 +23,33 @@ import {
   X,
   Shield,
   AlertTriangle,
+  UserCheck,
 } from 'lucide-react';
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [committees, setCommittees] = useState<ClubCommittee[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
 
   // Schedule Modal
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [participantScope, setParticipantScope] = useState<'USERS' | 'ROLES' | 'COMMITTEE'>('USERS');
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([
+    'Executive Member',
+    'Treasurer',
+    'General Secretary',
+    'President',
+  ]);
+  const [reminderTiming, setReminderTiming] = useState({
+    immediate: true,
+    before24h: true,
+    before1h: true,
+  });
+
   const [newMeeting, setNewMeeting] = useState({
     title: '',
     meeting_type: 'EXECUTIVE_MEETING' as MeetingType,
@@ -81,18 +98,54 @@ export default function MeetingsPage() {
     loadMeetings();
   }, [statusFilter, typeFilter]);
 
+  useEffect(() => {
+    api
+      .get<any>('/users?status=active&limit=100')
+      .then((res) => {
+        if (res?.data && Array.isArray(res.data)) {
+          setUsersList(res.data);
+        } else if (res?.users && Array.isArray(res.users)) {
+          setUsersList(res.users);
+        }
+      })
+      .catch((err) => console.warn('Could not load users for meetings:', err));
+  }, []);
+
   const handleScheduleMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
     try {
+      let participant_ids: string[] = [];
+      let participant_emails: string[] = [];
+
+      if (participantScope === 'USERS') {
+        const selected = usersList.filter((u) => selectedUserIds.includes(u.id));
+        participant_ids = selected.map((u) => u.id);
+        participant_emails = selected.map((u) => u.email).filter(Boolean);
+      } else if (participantScope === 'ROLES') {
+        const selected = usersList.filter((u) =>
+          u.roles?.some((r: any) => selectedRoles.includes(r.name) || selectedRoles.includes(r.slug))
+        );
+        participant_ids = selected.map((u) => u.id);
+        participant_emails = selected.map((u) => u.email).filter(Boolean);
+      } else if (participantScope === 'COMMITTEE' && newMeeting.committee_id) {
+        const selected = usersList.filter((u) => u.committee_id === newMeeting.committee_id);
+        participant_ids = selected.map((u) => u.id);
+        participant_emails = selected.map((u) => u.email).filter(Boolean);
+      }
+
       const created = await governanceService.createMeeting({
         ...newMeeting,
         committee_id: newMeeting.committee_id || undefined,
+        participant_ids,
+        participant_emails,
+        reminder_settings: reminderTiming,
       });
 
       setMessage({ type: 'success', text: `Meeting "${created.title}" scheduled successfully!` });
       setShowScheduleModal(false);
+      setSelectedUserIds([]);
       setNewMeeting({
         title: '',
         meeting_type: 'EXECUTIVE_MEETING',
@@ -481,6 +534,144 @@ export default function MeetingsPage() {
                   onChange={(e) => setNewMeeting({ ...newMeeting, description: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
+              </div>
+
+              {/* Participant Selection & Scope */}
+              <div className="space-y-2.5 rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-200">
+                    Meeting Participants <span className="text-emerald-400">*</span>
+                  </label>
+                  <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setParticipantScope('USERS')}
+                      className={`px-2 py-0.5 rounded ${participantScope === 'USERS' ? 'bg-emerald-600 text-white font-medium' : 'text-slate-400'}`}
+                    >
+                      Specific Users
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParticipantScope('ROLES')}
+                      className={`px-2 py-0.5 rounded ${participantScope === 'ROLES' ? 'bg-emerald-600 text-white font-medium' : 'text-slate-400'}`}
+                    >
+                      By Role
+                    </button>
+                    {newMeeting.committee_id && (
+                      <button
+                        type="button"
+                        onClick={() => setParticipantScope('COMMITTEE')}
+                        className={`px-2 py-0.5 rounded ${participantScope === 'COMMITTEE' ? 'bg-emerald-600 text-white font-medium' : 'text-slate-400'}`}
+                      >
+                        Committee
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {participantScope === 'USERS' && (
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 border border-slate-800/80 rounded-lg p-2 bg-slate-900/50 scrollbar-thin">
+                    {usersList.length === 0 ? (
+                      <p className="text-xs text-slate-500 py-1">Loading eligible members...</p>
+                    ) : (
+                      usersList.map((u) => {
+                        const isSelected = selectedUserIds.includes(u.id);
+                        const roleName = u.roles?.[0]?.name || 'Member';
+                        return (
+                          <label
+                            key={u.id}
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer text-xs transition ${isSelected ? 'bg-emerald-950/50 border border-emerald-800/60 text-white' : 'hover:bg-slate-800/60 text-slate-300'}`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedUserIds([...selectedUserIds, u.id]);
+                                  } else {
+                                    setSelectedUserIds(selectedUserIds.filter((id) => id !== u.id));
+                                  }
+                                }}
+                                className="rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
+                              />
+                              <span className="font-medium truncate">{u.full_name}</span>
+                              <span className="text-[10px] text-slate-400">({roleName})</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 truncate max-w-[140px]">{u.email}</span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
+                {participantScope === 'ROLES' && (
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {['President', 'General Secretary', 'Treasurer', 'Executive Member', 'Advisor', 'Member'].map((role) => {
+                      const isSelected = selectedRoles.includes(role);
+                      return (
+                        <label
+                          key={role}
+                          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition ${isSelected ? 'bg-emerald-950/40 border-emerald-800/60 text-white' : 'border-slate-800 text-slate-400 hover:border-slate-700'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedRoles([...selectedRoles, role]);
+                              } else {
+                                setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                              }
+                            }}
+                            className="rounded border-slate-700 bg-slate-800 text-emerald-500"
+                          />
+                          <span>{role}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Reminder Timing Controls */}
+                <div className="pt-2 border-t border-slate-800/80">
+                  <span className="text-[11px] font-semibold text-slate-300 block mb-1.5">
+                    Automated Email Notices & Reminders:
+                  </span>
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reminderTiming.immediate}
+                        onChange={(e) => setReminderTiming({ ...reminderTiming, immediate: e.target.checked })}
+                        className="rounded border-slate-700 bg-slate-800 text-emerald-500"
+                      />
+                      <span>Immediately</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reminderTiming.before24h}
+                        onChange={(e) => setReminderTiming({ ...reminderTiming, before24h: e.target.checked })}
+                        className="rounded border-slate-700 bg-slate-800 text-emerald-500"
+                      />
+                      <span>24h Before</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={reminderTiming.before1h}
+                        onChange={(e) => setReminderTiming({ ...reminderTiming, before1h: e.target.checked })}
+                        className="rounded border-slate-700 bg-slate-800 text-emerald-500"
+                      />
+                      <span>1h Before</span>
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1.5">
+                    Invitations and reminders are sent strictly to selected participants.
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
