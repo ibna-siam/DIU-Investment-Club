@@ -67,12 +67,12 @@ export function DepartmentSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Focus search input when opened
+  // Focus search input when opened without scrolling the page
   useEffect(() => {
     if (isOpen) {
       setHighlightedIndex(0);
       const timer = setTimeout(() => {
-        searchInputRef.current?.focus();
+        searchInputRef.current?.focus({ preventScroll: true });
       }, 50);
       return () => clearTimeout(timer);
     }
@@ -112,13 +112,23 @@ export function DepartmentSelect({
   // Flat list of visible selectable items for keyboard navigation
   const flatSelectable = filteredDepartments;
 
-  // Scroll highlighted item into view
+  // Scroll highlighted item into view inside the dropdown menu ONLY (never scroll the window)
   useEffect(() => {
-    if (isOpen && optionRefs.current[highlightedIndex]) {
-      optionRefs.current[highlightedIndex]?.scrollIntoView({
-        block: 'nearest',
-        behavior: 'smooth',
-      });
+    if (isOpen && listRef.current && optionRefs.current[highlightedIndex]) {
+      const container = listRef.current;
+      const element = optionRefs.current[highlightedIndex];
+      if (!element) return;
+
+      const elementTop = element.offsetTop;
+      const elementBottom = elementTop + element.offsetHeight;
+      const containerTop = container.scrollTop;
+      const containerBottom = containerTop + container.clientHeight;
+
+      if (elementTop < containerTop) {
+        container.scrollTop = elementTop;
+      } else if (elementBottom > containerBottom) {
+        container.scrollTop = elementBottom - container.clientHeight;
+      }
     }
   }, [highlightedIndex, isOpen]);
 
@@ -169,6 +179,7 @@ export function DepartmentSelect({
       className={`relative ${isOpen ? 'z-[70]' : 'z-auto'} ${className}`}
       ref={containerRef}
       onKeyDown={handleKeyDown}
+      style={{ position: 'relative' }}
     >
       {/* Trigger Button */}
       <button
@@ -231,9 +242,12 @@ export function DepartmentSelect({
       {/* Hidden input for HTML form compliance */}
       <input type="hidden" name="department" value={value} required={required} />
 
-      {/* Dropdown Menu - High contrast, solid background, elevated z-index */}
+      {/* Dropdown Menu - Strictly absolute overlay, positioned directly below input with zero document flow impact */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-[100] w-full bg-[#0b1329] border border-slate-700 rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div
+          className="absolute left-0 right-0 top-full mt-1.5 w-full bg-[#0b1329] border border-slate-700 rounded-xl shadow-2xl ring-1 ring-white/10 overflow-hidden"
+          style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 9999 }}
+        >
           {/* Search Box */}
           <div className="p-2.5 border-b border-slate-800 bg-[#070d1e]">
             <div className="relative">

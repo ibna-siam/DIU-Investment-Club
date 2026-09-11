@@ -127,7 +127,8 @@ export default function CreateMemberPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-6">
+        {/* Academic & Identification Details */}
+        <div className="relative z-20 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-6">
           <h2 className="text-base font-semibold text-white border-b border-slate-800 pb-3 flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-indigo-400" />
             Academic & Identification Details
@@ -230,7 +231,7 @@ export default function CreateMemberPage() {
         </div>
 
         {/* Membership Tier & Policy */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-5">
+        <div className="relative z-10 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl space-y-5">
           <h2 className="text-base font-semibold text-white border-b border-slate-800 pb-3 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-emerald-400" />
             Membership Tier & Joining Assessment
