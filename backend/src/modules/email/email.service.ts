@@ -159,8 +159,7 @@ export class EmailService {
         to: effectiveTo,
         subject: isTestMode ? `[TEST MODE] ${options.subject}` : options.subject,
         html: options.html,
-        text: options.text,
-        replyTo: options.replyTo || EMAIL_BRAND.supportEmail,
+        replyTo: options.replyTo || (EMAIL_BRAND as any).replyToEmail || EMAIL_BRAND.supportEmail || '252-58-083@diu.edu.bd',
       });
 
       if (!result.success) {

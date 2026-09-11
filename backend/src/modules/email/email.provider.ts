@@ -12,7 +12,7 @@
  * - Non-blocking execution
  */
 
-import { getResendClient, isResendConfigured, DEFAULT_FROM_EMAIL } from './email.config';
+import { getResendClient, isResendConfigured, DEFAULT_FROM_EMAIL, DEFAULT_REPLY_TO_EMAIL } from './email.config';
 import { EMAIL_BRAND } from './email.brand';
 import { isValidEmail } from './email.security';
 
@@ -32,6 +32,7 @@ export interface SendMailOptions {
   text?: string;
   from?: string;
   replyTo?: string;
+  reply_to?: string;
 }
 
 export interface ProviderSendResult {
@@ -198,6 +199,7 @@ export class ResendEmailProvider implements IEmailProvider {
     try {
       const resend = getResendClient();
       const from = options.from || DEFAULT_FROM_EMAIL;
+      const replyTo = options.replyTo || options.reply_to || (EMAIL_BRAND as any).replyToEmail || EMAIL_BRAND.supportEmail || DEFAULT_REPLY_TO_EMAIL;
 
       const { data, error } = await resend.emails.send({
         from,
@@ -205,8 +207,9 @@ export class ResendEmailProvider implements IEmailProvider {
         subject: options.subject,
         html: options.html,
         text: options.text,
-        replyTo: options.replyTo || EMAIL_BRAND.supportEmail,
-      });
+        replyTo,
+        reply_to: replyTo,
+      } as any);
 
       if (error) {
         const classified = this.classifyResendError(error);

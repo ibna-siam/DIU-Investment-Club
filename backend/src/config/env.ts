@@ -17,6 +17,7 @@ const envSchema = z
     JWT_SECRET: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     RESEND_FROM_EMAIL: z.string().default('DIU Investment Club <noreply@invesmentclub.top>'),
+    REPLY_TO_EMAIL: z.string().optional().default('252-58-083@diu.edu.bd'),
     RESEND_TEST_RECIPIENT: z.string().optional().default('siamibna75@gmail.com'),
     ADMIN_EMAIL: z.string().optional().default('admin@diu.edu.bd'),
     EMAIL_PROVIDER: z.string().optional().default('resend').transform((v) => (v || 'resend').trim().toLowerCase()),

@@ -346,7 +346,7 @@ export class EmailQueue {
           subject: isTestMode ? `[TEST MODE] ${job.subject}` : job.subject,
           html: job.html,
           text: job.text,
-          replyTo: EMAIL_BRAND.supportEmail,
+          replyTo: (job as any).replyTo || (EMAIL_BRAND as any).replyToEmail || EMAIL_BRAND.supportEmail || '252-58-083@diu.edu.bd',
         });
 
         if (!result.success) {

@@ -17,6 +17,7 @@ export interface EmailBrandConfig {
   universityAffiliation?: string;
   tagline: string;
   supportEmail: string;
+  replyToEmail: string;
   officialWebsite: string;
   portalUrl: string;
   address: string;
@@ -52,12 +53,13 @@ export const DEFAULT_EMAIL_BRAND: EmailBrandConfig = {
   tagline: 'Fostering Financial Literacy, Leadership & Strategic Investment',
   
   // Official Contact & Socials
-  supportEmail: 'investmentclub@diu.edu.bd',
+  supportEmail: '252-58-083@diu.edu.bd',
+  replyToEmail: '252-58-083@diu.edu.bd',
   officialWebsite: 'https://daffodilvarsity.edu.bd',
   portalUrl: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0].trim().replace(/\/+$/, '') : 'http://localhost:3000',
   address: 'Daffodil Smart City, Birulia, Savar, Dhaka-1216, Bangladesh',
   officialCommLabel: 'Official club communication',
-  footerNotice: 'This is an automated message. Please do not reply directly unless reply support is configured.',
+  footerNotice: 'Questions or inquiries? Reply directly to this email or contact 252-58-083@diu.edu.bd.',
   logoUrl: '',
   
   // Default Email Sender Name & Format
@@ -102,6 +104,7 @@ export function getEmailBrandConfig(): EmailBrandConfig {
       university: cached.university_name || DEFAULT_EMAIL_BRAND.university,
       universityAffiliation: cached.university_name || DEFAULT_EMAIL_BRAND.university,
       supportEmail: cached.contact_email || DEFAULT_EMAIL_BRAND.supportEmail,
+      replyToEmail: cached.reply_to_email || DEFAULT_EMAIL_BRAND.replyToEmail,
       address: cached.campus_address || DEFAULT_EMAIL_BRAND.address,
       officialWebsite: cached.official_website || DEFAULT_EMAIL_BRAND.officialWebsite,
       officialCommLabel: cached.official_comm_label || DEFAULT_EMAIL_BRAND.officialCommLabel,

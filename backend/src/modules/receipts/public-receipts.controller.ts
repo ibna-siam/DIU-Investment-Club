@@ -69,7 +69,7 @@ export class PublicReceiptsController {
             name: 'DIU Investment Club',
             institution: 'Daffodil International University',
             officialDomain: 'https://invesmentclub.top',
-            supportEmail: 'contact@invesmentclub.top',
+            supportEmail: '252-58-083@diu.edu.bd',
           },
         },
       });

@@ -110,9 +110,9 @@ export function renderFooter(options?: { recipientEmail?: string; showUnsubscrib
           ${escapeHtml(EMAIL_BRAND.address)}
         </div>
 
-        <!-- 5. Automated Email Notice -->
-        <div style="font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 6px; word-break: break-word;">
-          ${escapeHtml(EMAIL_BRAND.footerNotice || 'This is an automated message. Please do not reply directly unless reply support is configured.')}
+        <!-- 5. Reply-To Support & Contact Notice -->
+        <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 6px; word-break: break-word;">
+          Questions or inquiries? Reply directly to this email or reach us at <a href="mailto:${escapeHtml(EMAIL_BRAND.supportEmail)}" style="color: ${EMAIL_BRAND.colors.primaryLight}; text-decoration: underline;">${escapeHtml(EMAIL_BRAND.supportEmail)}</a>.
         </div>
 
         ${recipientNote}

@@ -399,7 +399,7 @@ export default function SettingsPage() {
                   <Input
                     value={settingsForm.contact_email || ''}
                     onChange={(e) => handleSettingChange('contact_email', e.target.value)}
-                    placeholder="investmentclub@diu.edu.bd"
+                    placeholder="252-58-083@diu.edu.bd"
                     className="bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
