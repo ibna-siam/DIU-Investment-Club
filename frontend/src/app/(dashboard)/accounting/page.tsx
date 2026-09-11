@@ -22,17 +22,20 @@ import {
 } from 'lucide-react';
 import { accountingService } from '../../../services/accounting.service';
 import { AccountingDashboardSummary, JournalEntry } from '../../../types/accounting';
+import { DataStateError } from '../../../components/ui/DataStateError';
 
 export default function AccountingDashboardPage() {
   const [summary, setSummary] = useState<AccountingDashboardSummary | null>(null);
   const [recentJournals, setRecentJournals] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const [sumData, journalsData] = await Promise.all([
         accountingService.getDashboardSummary(),
         accountingService.getJournals({ limit: 5 } as any),
@@ -41,6 +44,7 @@ export default function AccountingDashboardPage() {
       setRecentJournals(journalsData.slice(0, 6));
     } catch (err) {
       console.error('Failed to load accounting dashboard data', err);
+      setLoadError(err);
     } finally {
       setLoading(false);
     }
@@ -71,6 +75,18 @@ export default function AccountingDashboardPage() {
           <RefreshCw className="h-8 w-8 animate-spin text-emerald-500" />
           <p className="text-sm font-medium text-slate-400">Loading General Ledger & Accounting Core...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="py-12">
+        <DataStateError
+          error={loadError}
+          onRetry={loadData}
+          moduleName="Accounting Dashboard"
+        />
       </div>
     );
   }

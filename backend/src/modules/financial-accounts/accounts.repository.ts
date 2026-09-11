@@ -1,4 +1,4 @@
-import { supabaseClient, isSupabaseConfigured } from '../../config/supabase';
+import { getDbAdmin, isSupabaseConfigured } from '../../config/supabase';
 import { FinancialAccount, PaginatedResponse, AccountStatus } from '../../types';
 import { financialEngineService } from '../financial-engine/financial-engine.service';
 import { auditLogsRepository } from '../audit-logs/audit-logs.repository';
@@ -9,8 +9,8 @@ export class AccountsRepository {
     type?: string;
     search?: string;
   }): Promise<FinancialAccount[]> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      let query = supabaseClient
+    if (isSupabaseConfigured()) {
+      let query = getDbAdmin()
         .from('financial_accounts')
         .select('*')
         .is('deleted_at', null);
@@ -26,7 +26,11 @@ export class AccountsRepository {
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (!error && data) {
+      if (error) {
+        console.error('Error fetching financial accounts from Supabase:', error);
+        return [];
+      }
+      if (data) {
         return data as FinancialAccount[];
       }
     }
@@ -34,14 +38,18 @@ export class AccountsRepository {
   }
 
   async findById(id: string): Promise<FinancialAccount | null> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin()
         .from('financial_accounts')
         .select('*')
         .eq('id', id)
         .is('deleted_at', null)
         .maybeSingle();
-      if (!error && data) {
+      if (error) {
+        console.error(`Error fetching financial account ${id}:`, error);
+        return null;
+      }
+      if (data) {
         return data as FinancialAccount;
       }
     }
@@ -66,11 +74,11 @@ export class AccountsRepository {
     provider_name?: string | null;
     description?: string | null;
   }, userId?: string): Promise<FinancialAccount | null> {
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       const current = await this.findById(id);
       if (!current) return null;
 
-      const { data: updated, error } = await supabaseClient
+      const { data: updated, error } = await getDbAdmin()
         .from('financial_accounts')
         .update({
           ...(data.name ? { name: data.name } : {}),
@@ -99,11 +107,11 @@ export class AccountsRepository {
   }
 
   async updateStatus(id: string, status: AccountStatus, userId?: string): Promise<FinancialAccount | null> {
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       const current = await this.findById(id);
       if (!current) return null;
 
-      const { data: updated, error } = await supabaseClient
+      const { data: updated, error } = await getDbAdmin()
         .from('financial_accounts')
         .update({
           status,
@@ -129,8 +137,8 @@ export class AccountsRepository {
   }
 
   async getAccountTransactions(accountId: string, limit = 20): Promise<any[]> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin()
         .from('financial_transactions')
         .select('*')
         .eq('financial_account_id', accountId)
@@ -154,14 +162,14 @@ export class AccountsRepository {
       return { total_in: 0, total_out: 0, current_balance: 0 };
     }
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data: credits } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data: credits } = await getDbAdmin()
         .from('financial_transactions')
         .select('amount')
         .eq('financial_account_id', accountId)
         .eq('direction', 'CREDIT');
 
-      const { data: debits } = await supabaseClient
+      const { data: debits } = await getDbAdmin()
         .from('financial_transactions')
         .select('amount')
         .eq('financial_account_id', accountId)

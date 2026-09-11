@@ -32,9 +32,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     delete headers['Content-Type'];
   }
 
-  // Request timeout safety (15 seconds)
+  // Request timeout safety (35 seconds to accommodate server cold-starts)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 35000);
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -81,6 +81,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
 
     return data;
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    if (err?.name === 'AbortError') {
+      throw new ApiError('Request timed out. The server may be warming up. Please try again.', 'TIMEOUT', 504);
+    }
+    throw new ApiError(err?.message || 'Network error occurred. Please check your connection.', 'NETWORK_ERROR', 0);
   } finally {
     clearTimeout(timeoutId);
   }

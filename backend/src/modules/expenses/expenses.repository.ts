@@ -1,4 +1,4 @@
-import { supabaseClient, isSupabaseConfigured } from '../../config/supabase';
+import { getDbAdmin, isSupabaseConfigured } from '../../config/supabase';
 import { Expense, PaginatedResponse } from '../../types';
 import { financialEngineService } from '../financial-engine/financial-engine.service';
 import { auditLogsRepository } from '../audit-logs/audit-logs.repository';
@@ -20,8 +20,8 @@ export class ExpensesRepository {
     const limit = params.limit && params.limit > 0 ? params.limit : 10;
     const offset = (page - 1) * limit;
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      let query = supabaseClient
+    if (isSupabaseConfigured()) {
+      let query = getDbAdmin()
         .from('expenses')
         .select(`
           *,
@@ -61,6 +61,10 @@ export class ExpensesRepository {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
+      if (error) {
+        console.error('Error fetching expenses from Supabase:', error);
+      }
+
       if (!error && data) {
         const total = count || data.length;
         const mapped: Expense[] = data.map((row: any) => ({
@@ -86,8 +90,8 @@ export class ExpensesRepository {
   }
 
   async findById(id: string): Promise<Expense | null> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin()
         .from('expenses')
         .select(`
           *,
@@ -99,7 +103,12 @@ export class ExpensesRepository {
         .is('deleted_at', null)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        console.error(`Error fetching expense record ${id}:`, error);
+        return null;
+      }
+
+      if (data) {
         return {
           ...data,
           paid_to: data.vendor_name,
@@ -128,10 +137,10 @@ export class ExpensesRepository {
     event_budget_item_id?: string | null;
     created_by?: string;
   }): Promise<Expense> {
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       const expenseNumber = await financialEngineService.generateExpenseNumber();
 
-      const { data: created, error } = await supabaseClient
+      const { data: created, error } = await getDbAdmin()
         .from('expenses')
         .insert({
           expense_number: expenseNumber,
@@ -186,8 +195,8 @@ export class ExpensesRepository {
       throw new Error('Only DRAFT or CHANGES_REQUESTED expense records can be modified');
     }
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data: updated, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data: updated, error } = await getDbAdmin()
         .from('expenses')
         .update({
           ...(data.expense_date ? { expense_date: data.expense_date } : {}),
@@ -223,12 +232,12 @@ export class ExpensesRepository {
   }
 
   async submitForApproval(id: string, userId: string): Promise<{ success: boolean; data?: any; error?: string }> {
-    if (!isSupabaseConfigured() || !supabaseClient) {
+    if (!isSupabaseConfigured()) {
       return { success: false, error: 'Database is not connected' };
     }
 
     try {
-      const { data, error } = await supabaseClient.rpc('submit_expense_for_approval', {
+      const { data, error } = await getDbAdmin().rpc('submit_expense_for_approval', {
         p_expense_id: id,
         p_user_id: userId,
       });
@@ -263,8 +272,8 @@ export class ExpensesRepository {
       throw new Error('Paid expense cannot be cancelled directly without reversal');
     }
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data: updated, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data: updated, error } = await getDbAdmin()
         .from('expenses')
         .update({
           status: 'CANCELLED',

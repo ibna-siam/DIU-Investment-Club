@@ -7,6 +7,7 @@ import { FinancialAccount } from '../../../types/financial';
 import { formatBDT, formatAccountType } from '../../../lib/formatters';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DataStateError } from '../../../components/ui/DataStateError';
 import {
   Wallet,
   Plus,
@@ -48,7 +49,7 @@ export default function AccountsPage() {
   const [targetStatus, setTargetStatus] = useState<'ACTIVE' | 'INACTIVE' | 'CLOSED'>('ACTIVE');
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: response, isLoading } = useQuery<AccountsApiResponse>({
+  const { data: response, isLoading, isError, error, refetch } = useQuery<AccountsApiResponse>({
     queryKey: ['financial-accounts', { search, typeFilter, statusFilter }],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -223,8 +224,14 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* Account Cards Grid */}
-      {isLoading ? (
+      {/* Account Cards Grid or Error / Empty States */}
+      {isError ? (
+        <DataStateError
+          error={error}
+          onRetry={() => refetch()}
+          moduleName="Financial Accounts"
+        />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="h-48 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse" />

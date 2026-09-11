@@ -1,4 +1,4 @@
-import { supabaseClient, isSupabaseConfigured } from '../../config/supabase';
+import { getDbAdmin, isSupabaseConfigured } from '../../config/supabase';
 import { Income, PaginatedResponse } from '../../types';
 import { financialEngineService } from '../financial-engine/financial-engine.service';
 import { auditLogsRepository } from '../audit-logs/audit-logs.repository';
@@ -19,8 +19,8 @@ export class IncomeRepository {
     const limit = params.limit && params.limit > 0 ? params.limit : 10;
     const offset = (page - 1) * limit;
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      let query = supabaseClient
+    if (isSupabaseConfigured()) {
+      let query = getDbAdmin()
         .from('incomes')
         .select(`
           *,
@@ -57,6 +57,10 @@ export class IncomeRepository {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
+      if (error) {
+        console.error('Error fetching incomes from Supabase:', error);
+      }
+
       if (!error && data) {
         const total = count || data.length;
         const mapped: Income[] = data.map((row: any) => ({
@@ -80,8 +84,8 @@ export class IncomeRepository {
   }
 
   async findById(id: string): Promise<Income | null> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin()
         .from('incomes')
         .select(`
           *,
@@ -93,7 +97,12 @@ export class IncomeRepository {
         .is('deleted_at', null)
         .maybeSingle();
 
-      if (!error && data) {
+      if (error) {
+        console.error(`Error fetching income record ${id}:`, error);
+        return null;
+      }
+
+      if (data) {
         return {
           ...data,
           category_name: data.category?.name,
@@ -117,10 +126,10 @@ export class IncomeRepository {
     event_id?: string | null;
     created_by?: string;
   }): Promise<Income> {
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       const incomeNumber = await financialEngineService.generateIncomeNumber();
 
-      const { data: created, error } = await supabaseClient
+      const { data: created, error } = await getDbAdmin()
         .from('incomes')
         .insert({
           income_number: incomeNumber,
@@ -172,8 +181,8 @@ export class IncomeRepository {
       throw new Error('Only DRAFT income records can be modified');
     }
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data: updated, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data: updated, error } = await getDbAdmin()
         .from('incomes')
         .update({
           ...(data.transaction_date ? { transaction_date: data.transaction_date } : {}),
@@ -218,8 +227,8 @@ export class IncomeRepository {
       throw new Error('Completed income cannot be cancelled directly without reversal');
     }
 
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data: updated, error } = await supabaseClient
+    if (isSupabaseConfigured()) {
+      const { data: updated, error } = await getDbAdmin()
         .from('incomes')
         .update({
           status: 'CANCELLED',

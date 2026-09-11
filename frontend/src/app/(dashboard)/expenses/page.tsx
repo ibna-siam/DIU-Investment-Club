@@ -7,6 +7,7 @@ import { Expense, ExpenseCategory, FinancialAccount } from '../../../types/finan
 import { formatBDT, formatDate } from '../../../lib/formatters';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
+import { DataStateError } from '../../../components/ui/DataStateError';
 import {
   CreditCard,
   Plus,
@@ -63,7 +64,7 @@ export default function ExpensesPage() {
   });
 
   // Fetch Expenses
-  const { data: response, isLoading } = useQuery<ExpensesApiResponse>({
+  const { data: response, isLoading, isError, error, refetch } = useQuery<ExpensesApiResponse>({
     queryKey: ['expenses', { search, categoryFilter, statusFilter, accountFilter, page, limit }],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -228,9 +229,15 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Expenses Table */}
+      {/* Expenses Table or Error / Empty States */}
       <div className="p-6 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
-        {isLoading ? (
+        {isError ? (
+          <DataStateError
+            error={error}
+            onRetry={() => refetch()}
+            moduleName="Expenses"
+          />
+        ) : isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-12 bg-slate-800/50 rounded-xl animate-pulse" />

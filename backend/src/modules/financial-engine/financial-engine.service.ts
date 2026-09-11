@@ -1,4 +1,4 @@
-import { supabaseClient, isSupabaseConfigured } from '../../config/supabase';
+import { getDbAdmin, isSupabaseConfigured } from '../../config/supabase';
 import { FinancialAccount, FinancialTransaction, Income, Expense, FinancialDashboardMetrics } from '../../types';
 
 export class FinancialEngineService {
@@ -7,9 +7,9 @@ export class FinancialEngineService {
    */
   async generateTxnNumber(): Promise<string> {
     const year = new Date().getFullYear();
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       try {
-        const { count, error } = await supabaseClient
+        const { count, error } = await getDbAdmin()
           .from('financial_transactions')
           .select('*', { count: 'exact', head: true })
           .ilike('transaction_number', `TXN-${year}-%`);
@@ -28,9 +28,9 @@ export class FinancialEngineService {
    */
   async generateIncomeNumber(): Promise<string> {
     const year = new Date().getFullYear();
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       try {
-        const { count, error } = await supabaseClient
+        const { count, error } = await getDbAdmin()
           .from('incomes')
           .select('*', { count: 'exact', head: true })
           .ilike('income_number', `INC-${year}-%`);
@@ -49,9 +49,9 @@ export class FinancialEngineService {
    */
   async generateExpenseNumber(): Promise<string> {
     const year = new Date().getFullYear();
-    if (isSupabaseConfigured() && supabaseClient) {
+    if (isSupabaseConfigured()) {
       try {
-        const { count, error } = await supabaseClient
+        const { count, error } = await getDbAdmin()
           .from('expenses')
           .select('*', { count: 'exact', head: true })
           .ilike('expense_number', `EXP-${year}-%`);
@@ -77,8 +77,8 @@ export class FinancialEngineService {
     description?: string;
     created_by?: string;
   }): Promise<FinancialAccount> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data: account, error } = await supabaseClient.rpc('create_financial_account', {
+    if (isSupabaseConfigured()) {
+      const { data: account, error } = await getDbAdmin().rpc('create_financial_account', {
         p_name: data.name,
         p_account_type: data.account_type,
         p_account_number: data.account_number || null,
@@ -101,8 +101,8 @@ export class FinancialEngineService {
    * Atomic Income Completion: locks account, creates credit transaction, increases balance
    */
   async completeIncome(incomeId: string, userId: string): Promise<any> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient.rpc('complete_income_transaction', {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin().rpc('complete_income_transaction', {
         p_income_id: incomeId,
         p_user_id: userId,
       });
@@ -128,8 +128,8 @@ export class FinancialEngineService {
    * Atomic Expense Payment: checks balance, locks account, creates debit transaction, decreases balance
    */
   async payExpense(expenseId: string, userId: string): Promise<any> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient.rpc('pay_expense_transaction', {
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin().rpc('pay_expense_transaction', {
         p_expense_id: expenseId,
         p_user_id: userId,
       });
@@ -155,8 +155,8 @@ export class FinancialEngineService {
    * Fetches Real-Time Financial Dashboard Metrics
    */
   async getDashboardMetrics(): Promise<FinancialDashboardMetrics> {
-    if (isSupabaseConfigured() && supabaseClient) {
-      const { data, error } = await supabaseClient.rpc('get_financial_dashboard_metrics');
+    if (isSupabaseConfigured()) {
+      const { data, error } = await getDbAdmin().rpc('get_financial_dashboard_metrics');
       if (!error && data) {
         return {
           total_available_balance: Number(data.total_available_balance || 0),
