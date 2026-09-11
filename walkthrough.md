@@ -69,21 +69,16 @@ graph TD
 
 ## Real Entities Safely Preserved
 
-### 1. Real Super Administrators & Users (`profiles`)
-- **Ibna Siam**: `siamibna29@gmail.com` (UUID: `0b891f78-263c-440e-bc98-9dd1bf7a8c27`)
+### 1. Real System Administrator (`profiles`)
 - **Super Administrator**: `admin@diu.edu.bd` (UUID: `a1111111-1111-1111-1111-111111111111`)
-- **Md. Ibna Siam**: `252-58-083@diu.edu.bd` (UUID: `872cd4c3-ffde-46b2-81b4-5d3564eabb34`)
 
-### 2. Real Club Members (`members`)
-- **Md. Ibna Siam**: `DIC-2026-00021` | `252-58-083@diu.edu.bd` | Executive Member
-- **siam**: `DIC-2026-00027` | `siamibna29@gmail.com` | Active Member
-- **Abraham Sajid**: `DIC-2026-00023` | `252-58-001@diu.edu.bd` | Active Member
-- **Thay Thay Wong**: `DIC-2026-00024` | `252-58-058@diu.edu.bd` | Active Member
-
-### 3. Real Operating Financial Accounts (`financial_accounts`)
+### 2. Operating Financial Accounts (`financial_accounts`)
 - **Club Petty Cash Fund** (`d95272c5-6925-4720-b1b5-bab7e4060fe9`): CASH | Balance: ৳0.00 | Status: ACTIVE
-- **Modile Banking (Bkash)** (`08596175-5607-4069-8cc2-2385d7583c71`): BKASH | Balance: ৳0.00 | Status: ACTIVE
 - **Primary Operating Bank A/C** (`daa50c57-4048-4fc2-a032-60c354af0e53`): BANK | Balance: ৳0.00 | Status: ACTIVE
+
+### 3. Student / Member Records
+- 0 records (Pristine clean state for fresh member enrollment)
+
 
 ---
 
