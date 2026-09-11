@@ -80,6 +80,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Users,
     children: [
       { title: 'Member Directory', href: '/members', permission: 'members.read' },
+      { title: 'DIU Departments', href: '/departments', role: 'SUPER_ADMIN' },
       { title: 'Membership Tiers', href: '/membership-types', permission: 'membership_types.manage' },
       { title: 'Member Dues', href: '/member-dues', permission: 'dues.read' },
       { title: 'Payment Collection', href: '/member-payments', permission: 'member_payments.read' },
@@ -292,6 +293,7 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
 
   // Members
   '/members': 'members.read',
+  '/departments': 'members.read',
   '/membership-types': 'membership_types.manage',
   '/member-dues': 'dues.read',
   '/member-payments': 'member_payments.read',

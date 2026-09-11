@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { membersService } from '../../../../services/members.service';
 import { MembershipType } from '../../../../types/financial';
+import { DepartmentSelect } from '../../../../components/ui/DepartmentSelect';
 
 export default function CreateMemberPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function CreateMemberPage() {
     full_name: '',
     email: '',
     phone: '',
-    department: 'Software Engineering',
+    department: 'Department of Accounting',
     batch: '',
     semester: '',
     membership_type_id: '',
@@ -191,21 +192,14 @@ export default function CreateMemberPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Department</label>
-              <select
-                name="department"
+              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                Department <span className="text-rose-400">*</span>
+              </label>
+              <DepartmentSelect
                 value={formData.department}
-                onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
-              >
-                <option value="Computer Science & Engineering">Computer Science & Engineering</option>
-                <option value="Software Engineering">Software Engineering</option>
-                <option value="Business Administration">Business Administration</option>
-                <option value="Finance & Banking">Finance & Banking</option>
-                <option value="Accounting & Information Systems">Accounting & Information Systems</option>
-                <option value="Economics">Economics</option>
-                <option value="Other">Other</option>
-              </select>
+                onChange={(val) => setFormData((prev) => ({ ...prev, department: val }))}
+                required
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

@@ -24,11 +24,15 @@ import {
   ExternalLink,
   ShieldAlert,
   RotateCcw,
+  Edit,
+  Save,
+  X,
 } from 'lucide-react';
 import { api } from '../../../../lib/api';
 import { membersService } from '../../../../services/members.service';
 import { Member, MemberDue, MemberPayment, FinancialAccount } from '../../../../types/financial';
 import { StatusBadge } from '../../../../components/ui/StatusBadge';
+import { DepartmentSelect } from '../../../../components/ui/DepartmentSelect';
 
 export default function MemberDetailPage() {
   const params = useParams();
@@ -63,6 +67,52 @@ export default function MemberDetailPage() {
   const [waiveDue, setWaiveDue] = useState<MemberDue | null>(null);
   const [waiveReason, setWaiveReason] = useState('');
   const [waiveLoading, setWaiveLoading] = useState(false);
+
+  // Edit Member Modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    student_id: '',
+    email: '',
+    phone: '',
+    department: '',
+    batch: '',
+    semester: '',
+    notes: '',
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  const handleOpenEditModal = () => {
+    if (!member) return;
+    setEditFormData({
+      full_name: member.full_name || '',
+      student_id: member.student_id || '',
+      email: member.email || '',
+      phone: member.phone || '',
+      department: member.department || '',
+      batch: member.batch || '',
+      semester: member.semester || '',
+      notes: member.notes || '',
+    });
+    setEditError('');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError('');
+    setEditLoading(true);
+    try {
+      await membersService.updateMember(memberId, editFormData);
+      setEditModalOpen(false);
+      await fetchMemberData();
+    } catch (err: any) {
+      setEditError(err.response?.data?.error?.message || 'Failed to update member');
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   const fetchMemberData = async () => {
     setLoading(true);
@@ -206,6 +256,14 @@ export default function MemberDetailPage() {
             </button>
           ) : (
             <>
+              <button
+                onClick={handleOpenEditModal}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-medium transition-colors"
+                title="Edit Member Information"
+              >
+                <Edit className="w-3.5 h-3.5 text-emerald-400" />
+                Edit Details
+              </button>
               <button
                 onClick={() => setStatusModalOpen(true)}
                 className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-medium transition-colors"
@@ -677,6 +735,143 @@ export default function MemberDetailPage() {
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-xl text-xs"
                 >
                   {waiveLoading ? 'Waiving...' : 'Confirm Waiver'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <Edit className="w-5 h-5 text-emerald-400" />
+                Edit Member Information
+              </h2>
+              <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300">
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Student ID <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.student_id}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, student_id: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Full Name <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.full_name}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Email Address <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Official DIU Department <span className="text-rose-400">*</span>
+                </label>
+                <DepartmentSelect
+                  value={editFormData.department}
+                  onChange={(val) => setEditFormData((prev) => ({ ...prev, department: val }))}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Batch</label>
+                  <input
+                    type="text"
+                    value={editFormData.batch}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, batch: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Semester</label>
+                  <input
+                    type="text"
+                    value={editFormData.semester}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, semester: e.target.value }))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Notes</label>
+                <textarea
+                  rows={2}
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-semibold rounded-xl text-xs"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {editLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

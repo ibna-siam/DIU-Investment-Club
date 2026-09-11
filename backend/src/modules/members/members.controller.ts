@@ -4,6 +4,8 @@ import { AuthenticatedRequest } from '../../middleware/auth.middleware';
 import { membersRepository } from './members.repository';
 import { auditLogsRepository } from '../audit-logs/audit-logs.repository';
 import { emailEventBus } from '../email/email.events';
+import { departmentsRepository } from '../departments/departments.repository';
+import { isValidEmail } from '../email/email.security';
 import { Member, MemberStatus } from '../../types';
 
 const createMemberSchema = z.object({
@@ -70,12 +72,37 @@ export class MembersController {
         return;
       }
 
+      const normalizedEmail = val.data.email.trim().toLowerCase();
+      if (!isValidEmail(normalizedEmail)) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_EMAIL', message: `Invalid email address format: "${val.data.email}"` },
+        });
+        return;
+      }
+
+      let validatedDepartment: string | undefined = undefined;
+      if (val.data.department && val.data.department.trim()) {
+        const deptRecord = await departmentsRepository.findByOfficialName(val.data.department.trim());
+        if (!deptRecord || !deptRecord.active) {
+          res.status(400).json({
+            success: false,
+            error: {
+              code: 'INVALID_DEPARTMENT',
+              message: `Invalid or inactive DIU Department: "${val.data.department}". Please select an official department from the DIU Department Directory.`,
+            },
+          });
+          return;
+        }
+        validatedDepartment = deptRecord.official_name;
+      }
+
       const created = await membersRepository.create({
         student_id: val.data.student_id.trim(),
         full_name: val.data.full_name.trim(),
-        email: val.data.email.trim().toLowerCase(),
+        email: normalizedEmail,
         phone: val.data.phone?.trim() || undefined,
-        department: val.data.department?.trim() || undefined,
+        department: validatedDepartment,
         batch: val.data.batch?.trim() || undefined,
         semester: val.data.semester?.trim() || undefined,
         membership_type_id: val.data.membership_type_id || undefined,
@@ -128,12 +155,50 @@ export class MembersController {
       }
 
       const old = await membersRepository.findById(id);
+      if (!old) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Member not found' } });
+        return;
+      }
+
+      let validatedEmail: string | undefined = undefined;
+      if (val.data.email) {
+        const normalized = val.data.email.trim().toLowerCase();
+        if (!isValidEmail(normalized)) {
+          res.status(400).json({
+            success: false,
+            error: { code: 'INVALID_EMAIL', message: `Invalid email address format: "${val.data.email}"` },
+          });
+          return;
+        }
+        validatedEmail = normalized;
+      }
+
+      let validatedDepartment: string | null | undefined = undefined;
+      if (val.data.department !== undefined) {
+        if (val.data.department && val.data.department.trim()) {
+          const deptRecord = await departmentsRepository.findByOfficialName(val.data.department.trim());
+          if (!deptRecord && val.data.department.trim() !== old.department) {
+            res.status(400).json({
+              success: false,
+              error: {
+                code: 'INVALID_DEPARTMENT',
+                message: `Invalid DIU Department: "${val.data.department}". Please select an official department from the DIU Department Directory.`,
+              },
+            });
+            return;
+          }
+          validatedDepartment = deptRecord ? deptRecord.official_name : val.data.department.trim();
+        } else {
+          validatedDepartment = null;
+        }
+      }
+
       const updatePayload: Partial<Member> = {
         ...(val.data.full_name ? { full_name: val.data.full_name.trim() } : {}),
         ...(val.data.student_id ? { student_id: val.data.student_id.trim() } : {}),
-        ...(val.data.email ? { email: val.data.email.trim().toLowerCase() } : {}),
+        ...(validatedEmail ? { email: validatedEmail } : {}),
         ...(val.data.phone !== undefined ? { phone: val.data.phone } : {}),
-        ...(val.data.department !== undefined ? { department: val.data.department } : {}),
+        ...(validatedDepartment !== undefined ? { department: validatedDepartment as any } : {}),
         ...(val.data.batch !== undefined ? { batch: val.data.batch } : {}),
         ...(val.data.semester !== undefined ? { semester: val.data.semester } : {}),
         ...(val.data.membership_type_id !== undefined ? { membership_type_id: val.data.membership_type_id || null } : {}),

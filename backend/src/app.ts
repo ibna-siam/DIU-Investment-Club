@@ -55,6 +55,7 @@ import webhooksRoutes from './modules/integrations/webhooks.routes';
 import settingsRoutes from './modules/settings/settings.routes';
 import emailRoutes from './modules/email/email.routes';
 import publicReceiptsRoutes from './modules/receipts/public-receipts.routes';
+import departmentsRoutes from './modules/departments/departments.routes';
 import { errorHandler, getTelemetryMetrics, getRecentErrors } from './middleware/error.middleware';
 
 // Approved static production & development origins
@@ -314,6 +315,7 @@ export const createApp = (): Express => {
   app.use('/api/v1/event-budgets', eventBudgetsRoutes);
   app.use('/api/v1/membership-types', membershipTypesRoutes);
   app.use('/api/v1/members', membersRoutes);
+  app.use('/api/v1/departments', departmentsRoutes);
   app.use('/api/v1/member-dues', memberDuesRoutes);
   app.use('/api/v1/member-payments', memberPaymentsRoutes);
   app.use('/api/v1/donations', donationsRoutes);
