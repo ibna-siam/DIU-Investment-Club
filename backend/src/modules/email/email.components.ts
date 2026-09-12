@@ -25,37 +25,31 @@ export interface StatusBadgeOptions {
 
 /**
  * 1. Email Header Component
- * Institutional University Aesthetic:
- * - Top DIU Emerald Green accent bar (4px)
- * - Deep Institutional Navy background (#0b1f3a)
- * - University & Club Hierarchy
+ * Minimal Institutional Layout:
+ * - Refined dark navy background (#0f1f38)
+ * - Clean minimal typography: "DIU Investment Club" + "Daffodil International University"
+ * - Avoids oversized colored blocks, loud badges, and gradients
  */
 export function renderHeader(options?: { subtitle?: string }): string {
   const logoHtml = EMAIL_BRAND.logoUrl
-    ? `<div style="margin-bottom: 10px;">
-         <img src="${sanitizeUrl(EMAIL_BRAND.logoUrl)}" alt="${escapeHtml(EMAIL_BRAND.name)}" style="max-height: 40px; max-width: 140px; height: auto; border: 0;" />
+    ? `<div style="margin-bottom: 8px;">
+         <img src="${sanitizeUrl(EMAIL_BRAND.logoUrl)}" alt="${escapeHtml(EMAIL_BRAND.name)}" style="max-height: 32px; max-width: 120px; height: auto; border: 0;" />
        </div>`
     : '';
 
-  const subtitleText = options?.subtitle || 'Official Club Communication';
-  const subtitleHtml = `<div style="font-size: 11px; font-weight: 500; color: #cbd5e1; margin-top: 4px; letter-spacing: 0.04em; text-transform: uppercase;">
-         ${escapeHtml(subtitleText)}
-       </div>`;
-
   return `
     <tr>
-      <td class="header-cell" style="padding: 26px 32px; background-color: #0b1f3a; border-top: 4px solid #059669; border-bottom: 1px solid #e2e8f0;">
+      <td class="header-cell" style="padding: 22px 32px; background-color: #0f1f38; border-bottom: 1px solid #e2e8f0;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
           <tr>
             <td valign="middle" align="left">
               ${logoHtml}
-              <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #34d399; text-transform: uppercase; margin-bottom: 4px; word-break: break-word;">
-                ${escapeHtml(EMAIL_BRAND.university)}
-              </div>
-              <div style="font-size: 21px; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; line-height: 1.25; word-break: break-word;">
+              <div style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; line-height: 1.25; word-break: break-word;">
                 ${escapeHtml(EMAIL_BRAND.name)}
               </div>
-              ${subtitleHtml}
+              <div style="font-size: 12px; font-weight: 400; color: #94a3b8; margin-top: 3px; letter-spacing: 0.01em;">
+                ${escapeHtml(EMAIL_BRAND.university)}
+              </div>
             </td>
           </tr>
         </table>
@@ -66,69 +60,42 @@ export function renderHeader(options?: { subtitle?: string }): string {
 
 /**
  * 2. Email Footer Component
- * Section 10 Recommended Hierarchy:
+ * Minimal Professional Layout:
  * - DIU Investment Club
  * - Daffodil International University
- * - Official club communication pill badge
- * - Campus Address
- * - Reply-To Support & Contact Notice
- * - Official Domain (invesmentclub.top)
- * - Recipient & Copyright notes
+ * - For assistance: 252-58-083@diu.edu.bd
+ * - © 2026 DIU Investment Club
+ * Clean, compact, and free of unnecessary badges or physical addresses.
  */
 export function renderFooter(options?: { recipientEmail?: string; showUnsubscribe?: boolean }): string {
   const currentYear = new Date().getFullYear();
   const recipientNote = options?.recipientEmail
-    ? `<div style="margin: 6px 0; font-size: 11px; color: #94a3b8; word-break: break-all;">Sent to ${escapeHtml(options.recipientEmail)}</div>`
+    ? `<div style="margin: 8px 0 0 0; font-size: 11px; color: #94a3b8; word-break: break-all;">Sent to ${escapeHtml(options.recipientEmail)}</div>`
     : '';
 
   const unsubscribeHtml = options?.showUnsubscribe
-    ? `<div style="margin: 10px 0 0 0; font-size: 11px; color: #64748b;">
-         To manage your notification preferences, visit your 
-         <a href="${sanitizeUrl(EMAIL_BRAND.portalUrl + '/settings')}" style="color: #059669; text-decoration: underline;">Profile Settings</a>.
+    ? `<div style="margin: 8px 0 0 0; font-size: 11px; color: #94a3b8;">
+         <a href="${sanitizeUrl(EMAIL_BRAND.portalUrl + '/settings')}" style="color: #64748b; text-decoration: underline;">Notification Preferences</a>
        </div>`
     : '';
 
   return `
     <tr>
-      <td class="footer-cell" style="padding: 28px 32px 24px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; line-height: 1.55; text-align: center;">
-        
-        <!-- 1. Club Name -->
-        <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 2px; word-break: break-word;">
+      <td class="footer-cell" style="padding: 24px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; line-height: 1.6; text-align: center;">
+        <div style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 2px;">
           ${escapeHtml(EMAIL_BRAND.name)}
         </div>
-        
-        <!-- 2. University Affiliation -->
-        <div style="font-size: 12px; font-weight: 500; color: #475569; margin-bottom: 8px; word-break: break-word;">
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 10px;">
           ${escapeHtml(EMAIL_BRAND.university)}
         </div>
-
-        <!-- 3. Official Club Communication Label -->
-        <div style="display: inline-block; font-size: 10px; font-weight: 700; color: #047857; background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 10px; border-radius: 9999px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px;">
-          ${escapeHtml(EMAIL_BRAND.officialCommLabel || 'Official club communication')}
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+          For assistance: <a href="mailto:${escapeHtml(EMAIL_BRAND.supportEmail)}" style="color: #0f1f38; font-weight: 600; text-decoration: underline;">${escapeHtml(EMAIL_BRAND.supportEmail)}</a>
         </div>
-
-        <!-- 4. Contact & Campus Address -->
-        <div style="font-size: 11px; color: #64748b; line-height: 1.45; margin-bottom: 6px; word-break: break-word;">
-          ${escapeHtml(EMAIL_BRAND.address)}
+        <div style="font-size: 11px; color: #94a3b8;">
+          &copy; ${currentYear} ${escapeHtml(EMAIL_BRAND.name)}
         </div>
-
-        <!-- 5. Reply-To Support & Contact Notice -->
-        <div style="font-size: 11px; color: #475569; line-height: 1.45; margin-bottom: 8px; word-break: break-word;">
-          Questions or inquiries? Reply directly to this email or reach us at <a href="mailto:${escapeHtml(EMAIL_BRAND.supportEmail)}" style="color: #059669; font-weight: 600; text-decoration: underline;">${escapeHtml(EMAIL_BRAND.supportEmail)}</a>
-        </div>
-
-        <!-- 6. Official Domain Link -->
-        <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">
-          Official Portal: <a href="https://invesmentclub.top" target="_blank" style="color: #0284c7; font-weight: 600; text-decoration: none;">invesmentclub.top</a>
-        </div>
-
         ${recipientNote}
         ${unsubscribeHtml}
-
-        <!-- 7. Copyright -->
-        <div style="margin-top: 12px; font-size: 11px; color: #94a3b8;">
-          &copy; ${currentYear} ${escapeHtml(EMAIL_BRAND.name)} • ${escapeHtml(EMAIL_BRAND.university)}. All rights reserved.
-        </div>
       </td>
     </tr>
   `;
@@ -193,7 +160,7 @@ export function renderInfoCard(options: { title?: string; items: InfoCardItem[] 
 }
 
 /**
- * 6. Financial Summary Card Component (Responsive, Light Card, Scaled Typography)
+ * 6. Financial Summary Card Component (Responsive, Clean Light Box)
  */
 export function renderFinancialCard(options: {
   title: string;
@@ -214,72 +181,142 @@ export function renderFinancialCard(options: {
     : '';
 
   return `
-    <div style="margin: 22px 0; padding: 22px 18px; background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; border-top: 3px solid #059669; text-align: center; box-sizing: border-box; max-width: 100%;">
-      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 8px; word-break: break-word;">
+    <div style="margin: 20px 0; padding: 20px 18px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center; box-sizing: border-box; max-width: 100%;">
+      <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 6px; word-break: break-word;">
         ${escapeHtml(options.title)}
       </div>
-      <div style="font-size: 30px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; margin-bottom: 4px; line-height: 1.15; word-break: break-word;">
-        ${escapeHtml(formattedAmount)} <span style="font-size: 14px; font-weight: 600; color: #059669;">${escapeHtml(currency)}</span>
+      <div style="font-size: 26px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; margin-bottom: 4px; line-height: 1.2; word-break: break-word;">
+        ${escapeHtml(formattedAmount)} <span style="font-size: 14px; font-weight: 500; color: #475569;">${escapeHtml(currency)}</span>
       </div>
-      ${statusBadge ? `<div style="margin-top: 12px;">${statusBadge}</div>` : ''}
+      ${statusBadge ? `<div style="margin-top: 10px;">${statusBadge}</div>` : ''}
     </div>
     ${detailsTable}
   `;
 }
 
 /**
- * 7. Status Badge Component (Clean Light Pills)
+ * 6B. Dedicated Receipt Card for Payment Emails
+ * Unified, clean, receipt-style layout:
+ * - Payment Amount & Status badge
+ * - Structured key-value items (Reference, Method, Date, Receipt #)
+ * - Single cohesive container without unnecessary boxes
+ */
+export function renderReceiptCard(options: {
+  amount: number | string;
+  currency?: string;
+  status?: string;
+  reference: string;
+  method?: string;
+  date: string;
+  receiptNumber?: string;
+}): string {
+  const currency = options.currency || 'BDT';
+  const formattedAmount = typeof options.amount === 'number' ? options.amount.toLocaleString() : options.amount;
+  const statusText = options.status || 'CONFIRMED';
+
+  const rows: { label: string; value: string; isMono?: boolean }[] = [
+    { label: 'Payment Reference', value: options.reference, isMono: true },
+    ...(options.method ? [{ label: 'Payment Method', value: options.method }] : []),
+    { label: 'Confirmation Date', value: options.date },
+    ...(options.receiptNumber ? [{ label: 'Receipt Number', value: options.receiptNumber, isMono: true }] : []),
+  ];
+
+  const rowsHtml = rows.map((r, i) => {
+    const isLast = i === rows.length - 1;
+    const border = isLast ? '' : 'border-bottom: 1px solid #f1f5f9;';
+    const fontFam = r.isMono ? 'font-family: ui-monospace, SFMono-Regular, Consolas, monospace;' : '';
+    return `
+      <tr>
+        <td style="padding: 10px 0; ${border} color: #64748b; font-size: 13px; font-weight: 500; width: 42%; vertical-align: top;">
+          ${escapeHtml(r.label)}
+        </td>
+        <td style="padding: 10px 0; ${border} color: #0f172a; font-size: 13px; font-weight: 600; ${fontFam} width: 58%; text-align: right; vertical-align: top; word-break: break-word;">
+          ${escapeHtml(r.value)}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+    <div style="margin: 22px 0; padding: 22px 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          <td valign="middle" align="left">
+            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 4px;">
+              Amount Paid
+            </div>
+            <div style="font-size: 26px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; line-height: 1.15;">
+              ৳ ${escapeHtml(formattedAmount)} <span style="font-size: 13px; font-weight: 500; color: #64748b;">${escapeHtml(currency)}</span>
+            </div>
+          </td>
+          <td valign="middle" align="right">
+            ${renderStatusBadge(statusText, 'success')}
+          </td>
+        </tr>
+      </table>
+
+      <div style="border-top: 1px solid #e2e8f0; margin: 18px 0 8px 0;"></div>
+
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        ${rowsHtml}
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * 7. Status Badge Component (Professional, Muted Status Pills)
  */
 export function renderStatusBadge(status: string, variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' = 'neutral'): string {
   let color = '#334155';
   let bg = '#f1f5f9';
-  let border = '#cbd5e1';
+  let border = '#e2e8f0';
 
   switch (variant) {
     case 'success':
       color = '#15803d';
-      bg = '#dcfce7';
+      bg = '#ecfdf5';
       border = '#bbf7d0';
       break;
     case 'warning':
-      color = '#b45309';
-      bg = '#fef3c7';
+      color = '#92400e';
+      bg = '#fffbeb';
       border = '#fde68a';
       break;
     case 'danger':
-      color = '#b91c1c';
-      bg = '#fee2e2';
+      color = '#991b1b';
+      bg = '#fef2f2';
       border = '#fecaca';
       break;
     case 'info':
       color = '#0369a1';
-      bg = '#e0f2fe';
+      bg = '#f0f9ff';
       border = '#bae6fd';
       break;
   }
 
   return `
-    <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: ${color}; background-color: ${bg}; border: 1px solid ${border}; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word;">
+    <span style="display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; color: ${color}; background-color: ${bg}; border: 1px solid ${border}; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word;">
       ${escapeHtml(status)}
     </span>
   `;
 }
 
 /**
- * 8. Primary CTA Button Component (Tap-friendly 44px, DIU Emerald Green, Outlook MSO VML)
+ * 8. Primary CTA Button Component (Elegant Institutional Navy, Outlook MSO VML, 44px min height)
  */
 export function renderPrimaryButton(label: string, url: string): string {
   const safeUrl = sanitizeUrl(url);
   return `
-    <div style="margin: 28px 0 20px 0; text-align: center;">
+    <div style="margin: 26px 0 16px 0; text-align: center;">
       <!--[if mso]>
-      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:46px;v-text-anchor:middle;width:240px;" arcsize="18%" stroke="f" fillcolor="#059669">
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="14%" stroke="f" fillcolor="#0f1f38">
         <w:anchorlock/>
-        <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:700;">${escapeHtml(label)}</center>
+        <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:600;">${escapeHtml(label)}</center>
       </v:roundrect>
       <![endif]-->
       <!--[if !mso]><!-->
-      <a href="${safeUrl}" target="_blank" class="email-btn" style="display: inline-block; max-width: 100%; box-sizing: border-box; word-break: break-word; background-color: #059669; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; padding: 13px 28px; min-height: 44px; line-height: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);">
+      <a href="${safeUrl}" target="_blank" class="email-btn" style="display: inline-block; max-width: 100%; box-sizing: border-box; word-break: break-word; background-color: #0f1f38; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; padding: 12px 26px; min-height: 44px; line-height: 20px; border-radius: 6px;">
         ${escapeHtml(label)}
       </a>
       <!--<![endif]-->
@@ -293,8 +330,8 @@ export function renderPrimaryButton(label: string, url: string): string {
 export function renderSecondaryLink(label: string, url: string): string {
   const safeUrl = sanitizeUrl(url);
   return `
-    <div style="margin: 14px 0; text-align: center;">
-      <a href="${safeUrl}" target="_blank" style="font-size: 13px; color: #059669; text-decoration: underline; font-weight: 600; word-break: break-word;">
+    <div style="margin: 12px 0; text-align: center;">
+      <a href="${safeUrl}" target="_blank" style="font-size: 13px; color: #0f1f38; text-decoration: underline; font-weight: 500; word-break: break-word;">
         ${escapeHtml(label)} &rarr;
       </a>
     </div>
@@ -306,39 +343,36 @@ export function renderSecondaryLink(label: string, url: string): string {
  */
 export function renderDivider(): string {
   return `
-    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
   `;
 }
 
 /**
- * 11. Alert / Warning Box Component (Clean Soft Light Callouts)
+ * 11. Subtle Security & Information Callout Component
+ * Understated, clean, and low-contrast to avoid loud colored boxes.
  */
 export function renderAlertBox(message: string, type: 'info' | 'warning' | 'danger' | 'success' = 'info'): string {
-  let borderColor = '#0284c7';
-  let bgColor = '#f0f9ff';
-  let textColor = '#0369a1';
-  let icon = 'ℹ️';
+  let borderColor = '#94a3b8';
+  let bgColor = '#f8fafc';
+  let textColor = '#334155';
 
   if (type === 'warning') {
     borderColor = '#d97706';
-    bgColor = '#fffbeb';
-    textColor = '#92400e';
-    icon = '⚠️';
+    bgColor = '#fffdfa';
+    textColor = '#78350f';
   } else if (type === 'danger') {
-    borderColor = '#dc2626';
-    bgColor = '#fef2f2';
-    textColor = '#991b1b';
-    icon = '🚨';
+    borderColor = '#ef4444';
+    bgColor = '#fefafa';
+    textColor = '#7f1d1d';
   } else if (type === 'success') {
-    borderColor = '#059669';
-    bgColor = '#f0fdf4';
-    textColor = '#166534';
-    icon = '✅';
+    borderColor = '#10b981';
+    bgColor = '#f9fefb';
+    textColor = '#14532d';
   }
 
   return `
-    <div style="margin: 20px 0; padding: 14px 16px; border-radius: 8px; background-color: ${bgColor}; border-left: 4px solid ${borderColor}; border-top: 1px solid ${borderColor}20; border-right: 1px solid ${borderColor}20; border-bottom: 1px solid ${borderColor}20; font-size: 13px; line-height: 1.55; color: ${textColor}; box-sizing: border-box; max-width: 100%; word-break: break-word;">
-      <strong style="margin-right: 6px;">${icon}</strong> ${escapeHtml(message)}
+    <div style="margin: 18px 0; padding: 12px 14px; border-radius: 6px; background-color: ${bgColor}; border: 1px solid #e2e8f0; border-left: 3px solid ${borderColor}; font-size: 13px; line-height: 1.5; color: ${textColor}; box-sizing: border-box; max-width: 100%; word-break: break-word;">
+      ${escapeHtml(message)}
     </div>
   `;
 }

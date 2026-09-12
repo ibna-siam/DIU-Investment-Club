@@ -18,6 +18,7 @@ import {
   renderParagraph,
   renderInfoCard,
   renderFinancialCard,
+  renderReceiptCard,
   renderAlertBox,
   renderDivider,
   renderSecondaryLink,
@@ -140,53 +141,48 @@ export interface UserWelcomeEmailParams {
 }
 
 export function renderUserWelcomeEmail(params: UserWelcomeEmailParams): RenderedEmail {
-  const subject = `Welcome to the ${EMAIL_BRAND.name} Portal`;
+  const subject = `Welcome to ${EMAIL_BRAND.name}`;
 
   const content = `
     ${renderGreeting(params.userName)}
     ${renderParagraph(
-      `Your administrative user profile has been successfully created in the <strong>${escapeHtml(EMAIL_BRAND.name)} ERP & Financial Management System</strong>.`
+      `Your user profile has been created for the <strong>${escapeHtml(EMAIL_BRAND.name)}</strong> portal and your assigned system access is ready.`
     )}
     ${renderParagraph(
-      'As an authorized system user, you will have access to club operations, financial records, reporting tools, and member management according to your assigned privileges.'
+      'As an authorized user, you will be able to manage club operations, financial records, reporting tools, and member activities according to your assigned privileges.'
     )}
     ${renderAlertBox(
-      'A separate Account Activation email containing your secure authorization token has been sent. Please refer to that email to establish your password and access your account.',
+      'A separate Account Activation email containing your secure setup link has been dispatched. Please follow the instructions in that email to establish your password and access your account.',
       'info'
     )}
-    <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
+    <div style="margin-top: 22px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #0f172a;">System Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   // Explicitly NO actionButton - Access button is strictly in ACCOUNT_INVITATION
   const html = renderBaseLayout({
     title: subject,
-    headerSubtitle: 'Administrative Portal Access',
-    preheader: `Welcome to ${EMAIL_BRAND.name} ERP System. Your user profile is ready.`,
+    preheader: `Your user profile has been created for ${EMAIL_BRAND.name}.`,
     content,
     recipientEmail: params.recipientEmail,
     showUnsubscribe: false,
   });
 
   const text = `
-Welcome to the ${EMAIL_BRAND.name} Portal
-DAFFODIL INTERNATIONAL UNIVERSITY • DIU INVESTMENT CLUB
-Administrative Portal Access
+Welcome to ${EMAIL_BRAND.name}
+Daffodil International University
 
 Hello ${params.userName},
 
-Your administrative user profile has been successfully created in the ${EMAIL_BRAND.name} ERP & Financial Management System.
+Your user profile has been created for the ${EMAIL_BRAND.name} portal and your assigned system access is ready.
 
-As an authorized system user, you will have access to club operations, financial records, reporting tools, and member management according to your assigned privileges.
+As an authorized user, you will be able to access club operations, financial records, reporting tools, and member management according to your assigned privileges.
 
-A separate Account Activation email containing your secure authorization token has been sent. Please refer to that email to establish your password and access your account.
+A separate Account Activation email containing your secure setup link has been sent. Please refer to that email to establish your password and activate your account.
 
-If this profile was created unexpectedly, please contact system administration at ${EMAIL_BRAND.supportEmail}.
-
-Regards,
-System Administration • ${EMAIL_BRAND.name}
+For assistance: ${EMAIL_BRAND.supportEmail}
   `.trim();
 
   return { subject, html, text };
@@ -204,15 +200,12 @@ export function renderWelcomeEmail(params: {
 }
 
 /**
- * 2. Payment Confirmation Email (Section 7)
- * Redesigned with official university institutional structure:
- * 1. Professional Header: DAFFODIL INTERNATIONAL UNIVERSITY / DIU INVESTMENT CLUB / Official Financial Communication
- * 2. Personal Greeting: Hello, [Member Name]
- * 3. Payment Confirmation Section: Payment Successfully Confirmed
- * 4. Payment Summary Card: Amount Paid, Payment Method, Payment Reference, Transaction Date, Official Receipt Number
- * 5. Digital Receipt CTA: View Digital Receipt (public, zero login required)
- * 6. Support Information: Office of the Treasurer / 252-58-083@diu.edu.bd
- * 7. Professional Footer: invesmentclub.top
+ * 2. Payment Confirmation Email
+ * Clean, receipt-style layout:
+ * - Payment Amount & CONFIRMED status badge
+ * - Payment Reference, Payment Method, Confirmation Date, Official Receipt Number
+ * - Prominent, elegant View Digital Receipt button
+ * - Clean minimal support assistance note
  */
 export function renderPaymentConfirmationEmail(params: {
   memberName: string;
@@ -235,57 +228,31 @@ export function renderPaymentConfirmationEmail(params: {
   const content = `
     ${renderGreeting(params.memberName)}
     
-    <!-- Payment Confirmation Section -->
-    <div style="margin-bottom: 20px;">
-      <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; letter-spacing: -0.01em;">
-        Payment Successfully Confirmed
-      </h2>
-      <p style="font-size: 15px; line-height: 1.65; color: #334155; margin: 0;">
-        We are pleased to confirm that your payment has been verified by the Office of the Treasurer and officially recorded in the DIU Investment Club financial registry.
-      </p>
-    </div>
-
-    <!-- Payment Summary Card -->
-    ${renderFinancialCard({
-      title: 'Payment Summary',
-      amount: params.amount,
-      currency: 'BDT (৳)',
-      statusText: 'CONFIRMED',
-      statusVariant: 'success',
-      items: [
-        { label: 'Amount Paid', value: `৳ ${params.amount.toLocaleString()} BDT`, highlight: true },
-        { label: 'Payment Method', value: paymentMethodDisplay },
-        { label: 'Payment Reference', value: params.paymentReference, highlight: true },
-        { label: 'Transaction Date', value: date },
-        ...(params.receiptNumber ? [{ label: 'Official Receipt Number', value: params.receiptNumber }] : []),
-      ],
-    })}
-
-    <!-- Digital Receipt Information -->
     ${renderParagraph(
-      'An official digital receipt has been issued and archived for your club records. You can view, save, or print your verified public receipt anytime using the button below—no account creation or login required.'
+      'Your payment has been successfully verified by the Office of the Treasurer and recorded in the official registry.'
     )}
 
-    <!-- Support Information Card -->
-    <div style="margin-top: 24px; padding: 16px 18px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; line-height: 1.55;">
-      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 6px;">
-        Questions or Payment Assistance?
-      </div>
-      <div style="color: #334155; margin-bottom: 6px;">
-        For questions or payment-related assistance, please contact the finance administration:
-      </div>
-      <div style="font-weight: 700; color: #0f172a;">
-        Office of the Treasurer • ${escapeHtml(EMAIL_BRAND.name)}
-      </div>
-      <div style="color: #64748b; font-size: 12px; margin-top: 3px;">
-        Reply-to email: <a href="mailto:252-58-083@diu.edu.bd" style="color: #059669; font-weight: 600; text-decoration: underline;">252-58-083@diu.edu.bd</a>
-      </div>
+    ${renderReceiptCard({
+      amount: params.amount,
+      currency: 'BDT',
+      status: 'CONFIRMED',
+      reference: params.paymentReference,
+      method: paymentMethodDisplay,
+      date,
+      receiptNumber: params.receiptNumber,
+    })}
+
+    ${renderParagraph(
+      'An official digital receipt is archived and publicly accessible anytime—no account creation or login required.'
+    )}
+
+    <div style="margin-top: 18px; font-size: 13px; color: #64748b;">
+      For questions or payment assistance, reply directly to this email or contact <a href="mailto:${escapeHtml(EMAIL_BRAND.supportEmail)}" style="color: #0f1f38; font-weight: 500; text-decoration: underline;">${escapeHtml(EMAIL_BRAND.supportEmail)}</a>.
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
-    headerSubtitle: 'Official Financial Communication',
     preheader: `Payment confirmation of ৳ ${params.amount} BDT for ${EMAIL_BRAND.name}.`,
     content,
     actionButton: {
@@ -298,29 +265,25 @@ export function renderPaymentConfirmationEmail(params: {
 
   const text = `
 Payment Confirmation | ${EMAIL_BRAND.name}
-DAFFODIL INTERNATIONAL UNIVERSITY • DIU INVESTMENT CLUB
-Official Financial Communication
+Daffodil International University
 
 Hello ${params.memberName},
 
-Payment Successfully Confirmed
-We are pleased to confirm that your payment has been verified by the Office of the Treasurer and officially recorded in the DIU Investment Club financial registry.
+Your payment has been verified by the Office of the Treasurer and recorded in the official registry.
 
-PAYMENT SUMMARY:
+RECEIPT SUMMARY:
 - Amount Paid: ৳ ${params.amount.toLocaleString()} BDT
 - Status: CONFIRMED
-- Payment Method: ${paymentMethodDisplay}
 - Payment Reference: ${params.paymentReference}
-- Transaction Date: ${date}
+- Payment Method: ${paymentMethodDisplay}
+- Confirmation Date: ${date}
 ${params.receiptNumber ? `- Official Receipt Number: ${params.receiptNumber}\n` : ''}
+
 VIEW DIGITAL RECEIPT:
 ${receiptUrl}
 (Public access – no login or account required)
 
-FOR QUESTIONS OR PAYMENT ASSISTANCE:
-Office of the Treasurer • ${EMAIL_BRAND.name}
-Reply-to: 252-58-083@diu.edu.bd
-Official Portal: https://invesmentclub.top
+For assistance: ${EMAIL_BRAND.supportEmail}
   `.trim();
 
   return { subject, html, text };
@@ -1036,25 +999,25 @@ export function renderAccountInvitationEmail(params: {
   const content = `
     ${renderGreeting(params.userName)}
     ${renderParagraph(
-      `An authorized account has been provisioned for you at <strong>${escapeHtml(EMAIL_BRAND.name)}</strong>.`
+      `An authorized user profile has been created for you at <strong>${escapeHtml(EMAIL_BRAND.name)}</strong> and your system access is ready.`
     )}
     ${renderInfoCard({
-      title: 'Account Provisioning Details',
+      title: 'Profile & Access Overview',
       items: [
         { label: 'Assigned Role', value: roleDisplay, highlight: true },
         { label: 'Registered Email', value: params.recipientEmail || 'Registered Address' },
-        { label: 'Affiliation', value: EMAIL_BRAND.university },
-        { label: 'Setup Window', value: `${hours} hours` },
+        { label: 'Institution', value: EMAIL_BRAND.university },
+        { label: 'Activation Window', value: `${hours} hours` },
       ],
     })}
     ${renderParagraph(
-      'To access club operations, financial services, and member portals, please establish your confidential password by clicking the button below.'
+      'To access club operations, financial records, and member services, please establish your confidential password by clicking the button below.'
     )}
     ${renderAlertBox(
-      `For your security, this invitation link will expire in ${hours} hours. Please complete your account activation promptly.`,
+      `Security Notice: This activation link expires in ${hours} hours. If you did not request or expect access, please inform administration immediately.`,
       'info'
     )}
-    <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
+    <div style="margin-top: 22px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
       <strong style="color: #0f172a;">Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
@@ -1063,10 +1026,9 @@ export function renderAccountInvitationEmail(params: {
   const html = renderBaseLayout({
     title: subject,
     preheader: `Your account is ready. Complete your setup for ${EMAIL_BRAND.name}.`,
-    headerSubtitle: 'Administrative Account Provisioning',
     content,
     actionButton: {
-      label: 'Set Your Password',
+      label: 'Activate Account & Set Password',
       url: params.setupUrl,
     },
     recipientEmail: params.recipientEmail,
@@ -1075,23 +1037,24 @@ export function renderAccountInvitationEmail(params: {
 
   const text = `
 Your ${EMAIL_BRAND.name} Account Is Ready
+Daffodil International University
 
 Hello ${params.userName},
 
-An authorized account has been provisioned for you at ${EMAIL_BRAND.name}.
+An authorized profile has been created for you at ${EMAIL_BRAND.name} and your system access is ready.
 
-DETAILS:
+PROFILE OVERVIEW:
 - Assigned Role: ${roleDisplay}
 - Registered Email: ${params.recipientEmail || ''}
-- Affiliation: ${EMAIL_BRAND.university}
+- Institution: ${EMAIL_BRAND.university}
+- Activation Window: ${hours} hours
 
-Please establish your confidential password and access your account using this secure link:
-Set Your Password: ${params.setupUrl}
+To activate your account and establish your confidential password, visit:
+${params.setupUrl}
 
 This link expires in ${hours} hours.
 
-Regards,
-Administration • ${EMAIL_BRAND.name}
+For assistance: ${EMAIL_BRAND.supportEmail}
   `.trim();
 
   return { subject, html, text };
