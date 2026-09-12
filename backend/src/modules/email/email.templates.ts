@@ -80,13 +80,14 @@ export function renderMemberWelcomeEmail(params: MemberWelcomeEmailParams): Rend
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Warm regards,<br />
-      <strong style="color: #ffffff;">Executive Committee • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Executive Committee • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   // Explicitly NO actionButton and NO account access or login links
   const html = renderBaseLayout({
     title: subject,
+    headerSubtitle: 'Official Member Communication',
     preheader: `Welcome to ${EMAIL_BRAND.name}! Your membership registration is confirmed.`,
     content,
     recipientEmail: params.recipientEmail,
@@ -104,6 +105,8 @@ export function renderMemberWelcomeEmail(params: MemberWelcomeEmailParams): Rend
 
   const text = `
 Welcome to ${EMAIL_BRAND.name}
+DAFFODIL INTERNATIONAL UNIVERSITY • DIU INVESTMENT CLUB
+Official Member Communication
 
 Hello ${params.userName},
 
@@ -153,13 +156,14 @@ export function renderUserWelcomeEmail(params: UserWelcomeEmailParams): Rendered
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">System Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">System Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   // Explicitly NO actionButton - Access button is strictly in ACCOUNT_INVITATION
   const html = renderBaseLayout({
     title: subject,
+    headerSubtitle: 'Administrative Portal Access',
     preheader: `Welcome to ${EMAIL_BRAND.name} ERP System. Your user profile is ready.`,
     content,
     recipientEmail: params.recipientEmail,
@@ -168,6 +172,8 @@ export function renderUserWelcomeEmail(params: UserWelcomeEmailParams): Rendered
 
   const text = `
 Welcome to the ${EMAIL_BRAND.name} Portal
+DAFFODIL INTERNATIONAL UNIVERSITY • DIU INVESTMENT CLUB
+Administrative Portal Access
 
 Hello ${params.userName},
 
@@ -199,12 +205,21 @@ export function renderWelcomeEmail(params: {
 
 /**
  * 2. Payment Confirmation Email (Section 7)
+ * Redesigned with official university institutional structure:
+ * 1. Professional Header: DAFFODIL INTERNATIONAL UNIVERSITY / DIU INVESTMENT CLUB / Official Financial Communication
+ * 2. Personal Greeting: Hello, [Member Name]
+ * 3. Payment Confirmation Section: Payment Successfully Confirmed
+ * 4. Payment Summary Card: Amount Paid, Payment Method, Payment Reference, Transaction Date, Official Receipt Number
+ * 5. Digital Receipt CTA: View Digital Receipt (public, zero login required)
+ * 6. Support Information: Office of the Treasurer / 252-58-083@diu.edu.bd
+ * 7. Professional Footer: invesmentclub.top
  */
 export function renderPaymentConfirmationEmail(params: {
   memberName: string;
   amount: number;
   paymentDate?: string;
   paymentReference: string;
+  paymentMethod?: string;
   paymentType?: string;
   receiptNumber?: string;
   receiptToken?: string;
@@ -214,37 +229,63 @@ export function renderPaymentConfirmationEmail(params: {
   const date = params.paymentDate || new Date().toLocaleDateString('en-US', { dateStyle: 'medium' });
   const receiptUrl = params.receiptToken
     ? `https://invesmentclub.top/receipt/${params.receiptToken}`
-    : `${EMAIL_BRAND.portalUrl}/receipts`;
+    : `https://invesmentclub.top/receipts`;
+  const paymentMethodDisplay = params.paymentMethod || params.paymentType || 'Verified Club Payment';
 
   const content = `
     ${renderGreeting(params.memberName)}
-    ${renderParagraph(
-    `Thank you for your payment to <strong>${escapeHtml(EMAIL_BRAND.name)}</strong>. Your transaction has been confirmed and recorded in the official club records.`
-  )}
+    
+    <!-- Payment Confirmation Section -->
+    <div style="margin-bottom: 20px;">
+      <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; letter-spacing: -0.01em;">
+        Payment Successfully Confirmed
+      </h2>
+      <p style="font-size: 15px; line-height: 1.65; color: #334155; margin: 0;">
+        We are pleased to confirm that your payment has been verified by the Office of the Treasurer and officially recorded in the DIU Investment Club financial registry.
+      </p>
+    </div>
+
+    <!-- Payment Summary Card -->
     ${renderFinancialCard({
-    title: 'Payment Received',
-    amount: params.amount,
-    currency: 'BDT (৳)',
-    statusText: 'CONFIRMED',
-    statusVariant: 'success',
-    items: [
-      { label: 'Payment Reference', value: params.paymentReference, highlight: true },
-      { label: 'Payment Type', value: params.paymentType || 'Membership / Club Dues' },
-      { label: 'Date Confirmed', value: date },
-      ...(params.receiptNumber ? [{ label: 'Official Receipt #', value: params.receiptNumber }] : []),
-    ],
-  })}
+      title: 'Payment Summary',
+      amount: params.amount,
+      currency: 'BDT (৳)',
+      statusText: 'CONFIRMED',
+      statusVariant: 'success',
+      items: [
+        { label: 'Amount Paid', value: `৳ ${params.amount.toLocaleString()} BDT`, highlight: true },
+        { label: 'Payment Method', value: paymentMethodDisplay },
+        { label: 'Payment Reference', value: params.paymentReference, highlight: true },
+        { label: 'Transaction Date', value: date },
+        ...(params.receiptNumber ? [{ label: 'Official Receipt Number', value: params.receiptNumber }] : []),
+      ],
+    })}
+
+    <!-- Digital Receipt Information -->
     ${renderParagraph(
-    'A formal public digital receipt has been generated and archived for your official club records. Click the button below to view or print your digital receipt anytime without requiring a dashboard login.'
-  )}
-    <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
-      Regards,<br />
-      <strong style="color: #ffffff;">Office of the Treasurer • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      'An official digital receipt has been issued and archived for your club records. You can view, save, or print your verified public receipt anytime using the button below—no account creation or login required.'
+    )}
+
+    <!-- Support Information Card -->
+    <div style="margin-top: 24px; padding: 16px 18px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; line-height: 1.55;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 6px;">
+        Questions or Payment Assistance?
+      </div>
+      <div style="color: #334155; margin-bottom: 6px;">
+        For questions or payment-related assistance, please contact the finance administration:
+      </div>
+      <div style="font-weight: 700; color: #0f172a;">
+        Office of the Treasurer • ${escapeHtml(EMAIL_BRAND.name)}
+      </div>
+      <div style="color: #64748b; font-size: 12px; margin-top: 3px;">
+        Reply-to email: <a href="mailto:252-58-083@diu.edu.bd" style="color: #059669; font-weight: 600; text-decoration: underline;">252-58-083@diu.edu.bd</a>
+      </div>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
+    headerSubtitle: 'Official Financial Communication',
     preheader: `Payment confirmation of ৳ ${params.amount} BDT for ${EMAIL_BRAND.name}.`,
     content,
     actionButton: {
@@ -257,23 +298,29 @@ export function renderPaymentConfirmationEmail(params: {
 
   const text = `
 Payment Confirmation | ${EMAIL_BRAND.name}
+DAFFODIL INTERNATIONAL UNIVERSITY • DIU INVESTMENT CLUB
+Official Financial Communication
 
 Hello ${params.memberName},
 
-Thank you for your payment to ${EMAIL_BRAND.name}. Your transaction has been confirmed.
+Payment Successfully Confirmed
+We are pleased to confirm that your payment has been verified by the Office of the Treasurer and officially recorded in the DIU Investment Club financial registry.
 
-PAYMENT DETAILS:
-- Amount: ৳ ${params.amount.toLocaleString()} BDT
+PAYMENT SUMMARY:
+- Amount Paid: ৳ ${params.amount.toLocaleString()} BDT
 - Status: CONFIRMED
-- Reference: ${params.paymentReference}
-- Type: ${params.paymentType || 'Membership / Club Dues'}
-- Date: ${date}
-${params.receiptNumber ? `- Receipt: ${params.receiptNumber}\n` : ''}
-View Digital Receipt: ${receiptUrl}
+- Payment Method: ${paymentMethodDisplay}
+- Payment Reference: ${params.paymentReference}
+- Transaction Date: ${date}
+${params.receiptNumber ? `- Official Receipt Number: ${params.receiptNumber}\n` : ''}
+VIEW DIGITAL RECEIPT:
+${receiptUrl}
+(Public access – no login or account required)
 
-Regards,
-Office of the Treasurer
-${EMAIL_BRAND.name}
+FOR QUESTIONS OR PAYMENT ASSISTANCE:
+Office of the Treasurer • ${EMAIL_BRAND.name}
+Reply-to: 252-58-083@diu.edu.bd
+Official Portal: https://invesmentclub.top
   `.trim();
 
   return { subject, html, text };
@@ -319,13 +366,14 @@ export function renderExpenseApprovedEmail(params: {
   )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Executive Board • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Executive Board • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Your expense claim for ৳ ${params.amount} BDT has been approved.`,
+    headerSubtitle: 'Financial Reimbursement Notice',
     content,
     actionButton: {
       label: 'View Expense Record',
@@ -385,13 +433,14 @@ export function renderExpenseRejectedEmail(params: {
   )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Audit & Financial Review Team • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Audit & Financial Review Team • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Update required for your expense claim: "${params.expenseTitle}".`,
+    headerSubtitle: 'Financial Audit Notice',
     content,
     actionButton: {
       label: 'Review Claim Details',
@@ -442,7 +491,7 @@ export function renderEventNotificationEmail(params: {
     ${renderParagraph(
     `You are invited to participate in an upcoming event organized by <strong>${escapeHtml(EMAIL_BRAND.name)}</strong>.`
   )}
-    <h3 style="font-size: 18px; color: #ffffff; margin: 16px 0 12px 0; letter-spacing: -0.01em;">
+    <h3 style="font-size: 18px; color: #0f172a; margin: 16px 0 12px 0; letter-spacing: -0.01em;">
       ${escapeHtml(params.eventTitle)}
     </h3>
     ${renderInfoCard({
@@ -455,13 +504,14 @@ export function renderEventNotificationEmail(params: {
     ${params.description ? renderParagraph(escapeHtml(params.description)) : ''}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Events Committee • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Events Committee • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Upcoming Club Event: ${params.eventTitle} on ${params.eventDate}.`,
+    headerSubtitle: 'Official Event Announcement',
     content,
     actionButton: {
       label: 'View Event Details',
@@ -516,7 +566,7 @@ export function renderMeetingInvitationEmail(params: {
     ${renderParagraph(
     `You are formally notified of an upcoming meeting convened by <strong>${escapeHtml(EMAIL_BRAND.name)}</strong>.`
   )}
-    <h3 style="font-size: 18px; color: #ffffff; margin: 16px 0 12px 0;">
+    <h3 style="font-size: 18px; color: #0f172a; margin: 16px 0 12px 0;">
       ${escapeHtml(params.meetingTitle)}
     </h3>
     ${renderInfoCard({
@@ -530,13 +580,14 @@ export function renderMeetingInvitationEmail(params: {
     ${renderParagraph('Please ensure timely attendance or notify the General Secretary in advance of any conflict.')}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Executive Committee • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Executive Committee • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Meeting Invitation: ${params.meetingTitle} on ${params.meetingDate}.`,
+    headerSubtitle: 'Official Meeting Notice',
     content,
     actionButton: {
       label: 'View Meeting Details',
@@ -620,13 +671,14 @@ export function renderReminderEmail(params: {
     ${params.description ? renderAlertBox(params.description, badgeVariant) : ''}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Reminder: ${params.title} - ${EMAIL_BRAND.name}.`,
+    headerSubtitle: 'Official Schedule & Deadline Notice',
     content,
     actionButton: {
       label: actionLabel,
@@ -687,6 +739,7 @@ export function renderPasswordResetEmail(params: {
   const html = renderBaseLayout({
     title: subject,
     preheader: `Reset your password for ${EMAIL_BRAND.name}.`,
+    headerSubtitle: 'Account Security Notice',
     content,
     actionButton: {
       label: 'Reset Password',
@@ -756,13 +809,14 @@ export function renderExpenseSubmittedEmail(params: {
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Financial Control • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Financial Control • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `New expense claim for ৳ ${params.amount} BDT submitted by ${params.submitterName}.`,
+    headerSubtitle: 'Financial Review Notification',
     content,
     actionButton: {
       label: 'Review Approval Queue',
@@ -831,13 +885,14 @@ export function renderTaskAssignedEmail(params: {
     ${priority === 'URGENT' ? renderAlertBox('This task is marked with URGENT priority. Please review immediately.', 'warning') : ''}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Operations • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Operations • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `New task assigned: ${params.taskTitle}`,
+    headerSubtitle: 'Operational Task Assignment',
     content,
     actionButton: {
       label: 'View Assigned Task',
@@ -884,15 +939,15 @@ export function renderTestEmail(params: {
   const name = params.recipientName || 'Super Admin';
 
   const content = `
-    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; text-align: center;">
-      <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #10b981; letter-spacing: 0.1em; text-transform: uppercase;">
+    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; text-align: center;">
+      <span style="display: inline-block; font-size: 11px; font-weight: 700; color: #047857; letter-spacing: 0.1em; text-transform: uppercase;">
         ⚡ [SYSTEM TEST EMAIL] — NO ACTION REQUIRED
       </span>
     </div>
 
     ${renderGreeting(name)}
     ${renderParagraph(
-      `This message confirms that the <strong>DIU Investment Club Email System</strong> is fully operational and actively transmitting via the <strong>Resend</strong> provider using verified custom domain <strong style="color: #10b981;">invesmentclub.top</strong>.`
+      `This message confirms that the <strong>DIU Investment Club Email System</strong> is fully operational and actively transmitting via the <strong>Resend</strong> provider using verified custom domain <strong style="color: #059669;">invesmentclub.top</strong>.`
     )}
 
     ${renderInfoCard({
@@ -910,21 +965,22 @@ export function renderTestEmail(params: {
 
     ${params.notes ? renderAlertBox(params.notes, 'info') : ''}
 
-    <div style="margin-top: 24px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-left: 3px solid #10b981; border-radius: 4px;">
+    <div style="margin-top: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #059669; border-radius: 6px;">
       <p style="margin: 0; font-size: 13px; color: ${EMAIL_BRAND.colors.textSecondary}; line-height: 1.5;">
-        <strong>System Verification Note:</strong> All core email infrastructure (branded templates, SPF/DKIM authentication on <code style="color: #10b981;">invesmentclub.top</code>, and Resend delivery credentials) is active and verified. Live production automation workflows remain safe and isolated from test runs.
+        <strong>System Verification Note:</strong> All core email infrastructure (branded templates, SPF/DKIM authentication on <code style="color: #059669;">invesmentclub.top</code>, and Resend delivery credentials) is active and verified. Live production automation workflows remain safe and isolated from test runs.
       </p>
     </div>
 
     <div style="margin-top: 24px; font-size: 13px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Verified by:<br />
-      <strong style="color: #ffffff;">${escapeHtml(EMAIL_BRAND.name)} Technical Administration</strong>
+      <strong style="color: #0f172a;">${escapeHtml(EMAIL_BRAND.name)} Technical Administration</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `DIU Investment Club Email System Test - All delivery pipelines operational.`,
+    headerSubtitle: 'System Diagnostics & Verification',
     content,
     actionButton: {
       label: 'Open Club Portal',
@@ -1000,13 +1056,14 @@ export function renderAccountInvitationEmail(params: {
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Your account is ready. Complete your setup for ${EMAIL_BRAND.name}.`,
+    headerSubtitle: 'Administrative Account Provisioning',
     content,
     actionButton: {
       label: 'Set Your Password',
@@ -1066,13 +1123,14 @@ export function renderEmailVerificationEmail(params: {
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Member Services • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Member Services • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Verify your email address for ${EMAIL_BRAND.name}.`,
+    headerSubtitle: 'Official Account Verification',
     content,
     actionButton: {
       label: 'Verify Email Address',
@@ -1130,13 +1188,14 @@ export function renderPasswordChangedEmail(params: {
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Security Office • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Security Office • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Security Alert: Your password for ${EMAIL_BRAND.name} was changed.`,
+    headerSubtitle: 'Security Alert Notice',
     content,
     actionButton: {
       label: 'Review Account Security',
@@ -1198,13 +1257,14 @@ export function renderRoleChangedEmail(params: {
     )}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Governance • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Governance • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: `Your system access permissions in ${EMAIL_BRAND.name} have been updated.`,
+    headerSubtitle: 'Administrative Authorization Update',
     content,
     actionButton: {
       label: 'Open Dashboard',
@@ -1265,13 +1325,14 @@ export function renderAccountStatusEmail(params: {
     `}
     <div style="margin-top: 24px; font-size: 14px; color: ${EMAIL_BRAND.colors.textSecondary};">
       Regards,<br />
-      <strong style="color: #ffffff;">Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
+      <strong style="color: #0f172a;">Administration • ${escapeHtml(EMAIL_BRAND.name)}</strong>
     </div>
   `;
 
   const html = renderBaseLayout({
     title: subject,
     preheader: isSuspended ? `Your account access in ${EMAIL_BRAND.name} has been suspended.` : `Your account access in ${EMAIL_BRAND.name} has been restored.`,
+    headerSubtitle: 'Account Lifecycle Notification',
     content,
     actionButton: {
       label: isSuspended ? 'Contact Administration' : 'Log In to Account',

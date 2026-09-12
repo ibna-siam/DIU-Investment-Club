@@ -30,6 +30,8 @@ export interface EmailBrandConfig {
     cardBackground: string;
     surface: string;
     border: string;
+    navy: string;
+    navyLight: string;
     primary: string;
     primaryHover: string;
     primaryLight: string;
@@ -56,7 +58,7 @@ export const DEFAULT_EMAIL_BRAND: EmailBrandConfig = {
   supportEmail: '252-58-083@diu.edu.bd',
   replyToEmail: '252-58-083@diu.edu.bd',
   officialWebsite: 'https://daffodilvarsity.edu.bd',
-  portalUrl: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0].trim().replace(/\/+$/, '') : 'http://localhost:3000',
+  portalUrl: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0].trim().replace(/\/+$/, '') : 'https://invesmentclub.top',
   address: 'Daffodil Smart City, Birulia, Savar, Dhaka-1216, Bangladesh',
   officialCommLabel: 'Official club communication',
   footerNotice: 'Questions or inquiries? Reply directly to this email or contact 252-58-083@diu.edu.bd.',
@@ -65,22 +67,24 @@ export const DEFAULT_EMAIL_BRAND: EmailBrandConfig = {
   // Default Email Sender Name & Format
   senderName: 'DIU Investment Club',
   
-  // Visual Identity Colors (Professional, Academic, Financially Trustworthy)
+  // Visual Identity Colors (Official Institutional Academic, Clean Light Surfaces)
   colors: {
-    background: '#090d16',      // Deep midnight slate background
-    cardBackground: '#0f172a',  // Container / Card slate
-    surface: '#1e293b',         // Inner highlight / tables
-    border: '#273549',          // Subtle dividers
-    primary: '#059669',         // Emerald green (trust, growth, financial)
+    background: '#f1f5f9',      // Clean light neutral background (slate-100)
+    cardBackground: '#ffffff',  // Pure white card container
+    surface: '#f8fafc',         // Inner highlight / table surfaces (slate-50)
+    border: '#e2e8f0',          // Refined light gray divider (slate-200)
+    navy: '#0b1f3a',            // Deep institutional navy
+    navyLight: '#1e3a5f',       // Medium navy accent
+    primary: '#059669',         // DIU-inspired emerald green
     primaryHover: '#047857',
-    primaryLight: '#34d399',
+    primaryLight: '#10b981',
     accent: '#0284c7',          // Academic blue
-    textPrimary: '#f8fafc',     // Crisp white / slate-50
-    textSecondary: '#94a3b8',   // Subtle slate-400
-    textMuted: '#64748b',       // Footer slate-500
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
+    textPrimary: '#0f172a',     // Deep slate / charcoal (high contrast, crisp readability)
+    textSecondary: '#334155',   // Medium charcoal / slate-700
+    textMuted: '#64748b',       // Neutral slate-500
+    success: '#059669',
+    warning: '#d97706',
+    danger: '#dc2626',
   },
 
   // Standardized Email Subject Line Suffix

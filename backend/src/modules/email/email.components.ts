@@ -25,33 +25,34 @@ export interface StatusBadgeOptions {
 
 /**
  * 1. Email Header Component
- * Optimized for desktop and mobile viewports (320px-414px)
- * Fluid layout without overflowing badges or rigid columns
+ * Institutional University Aesthetic:
+ * - Top DIU Emerald Green accent bar (4px)
+ * - Deep Institutional Navy background (#0b1f3a)
+ * - University & Club Hierarchy
  */
 export function renderHeader(options?: { subtitle?: string }): string {
   const logoHtml = EMAIL_BRAND.logoUrl
-    ? `<div style="margin-bottom: 8px;">
-         <img src="${sanitizeUrl(EMAIL_BRAND.logoUrl)}" alt="${escapeHtml(EMAIL_BRAND.name)}" style="max-height: 38px; max-width: 120px; height: auto; border: 0;" />
+    ? `<div style="margin-bottom: 10px;">
+         <img src="${sanitizeUrl(EMAIL_BRAND.logoUrl)}" alt="${escapeHtml(EMAIL_BRAND.name)}" style="max-height: 40px; max-width: 140px; height: auto; border: 0;" />
        </div>`
     : '';
 
-  const subtitleHtml = options?.subtitle
-    ? `<div style="font-size: 11px; color: ${EMAIL_BRAND.colors.textSecondary}; margin-top: 3px; letter-spacing: 0.02em;">
-         ${escapeHtml(options.subtitle)}
-       </div>`
-    : '';
+  const subtitleText = options?.subtitle || 'Official Club Communication';
+  const subtitleHtml = `<div style="font-size: 11px; font-weight: 500; color: #cbd5e1; margin-top: 4px; letter-spacing: 0.04em; text-transform: uppercase;">
+         ${escapeHtml(subtitleText)}
+       </div>`;
 
   return `
     <tr>
-      <td class="header-cell" style="padding: 24px 28px; background: linear-gradient(135deg, #022c22 0%, #0f172a 100%); border-bottom: 1px solid ${EMAIL_BRAND.colors.border};">
+      <td class="header-cell" style="padding: 26px 32px; background-color: #0b1f3a; border-top: 4px solid #059669; border-bottom: 1px solid #e2e8f0;">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
           <tr>
             <td valign="middle" align="left">
               ${logoHtml}
-              <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: ${EMAIL_BRAND.colors.primaryLight}; text-transform: uppercase; margin-bottom: 3px; word-break: break-word;">
+              <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #34d399; text-transform: uppercase; margin-bottom: 4px; word-break: break-word;">
                 ${escapeHtml(EMAIL_BRAND.university)}
               </div>
-              <div style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; line-height: 1.3; word-break: break-word;">
+              <div style="font-size: 21px; font-weight: 800; color: #ffffff; letter-spacing: -0.01em; line-height: 1.25; word-break: break-word;">
                 ${escapeHtml(EMAIL_BRAND.name)}
               </div>
               ${subtitleHtml}
@@ -68,59 +69,65 @@ export function renderHeader(options?: { subtitle?: string }): string {
  * Section 10 Recommended Hierarchy:
  * - DIU Investment Club
  * - Daffodil International University
- * - Official club communication (compact, non-overflowing)
+ * - Official club communication pill badge
  * - Campus Address
- * - Automated notification notice
+ * - Reply-To Support & Contact Notice
+ * - Official Domain (invesmentclub.top)
  * - Recipient & Copyright notes
  */
 export function renderFooter(options?: { recipientEmail?: string; showUnsubscribe?: boolean }): string {
   const currentYear = new Date().getFullYear();
   const recipientNote = options?.recipientEmail
-    ? `<div style="margin: 6px 0; font-size: 11px; color: ${EMAIL_BRAND.colors.textMuted}; word-break: break-all;">Sent to ${escapeHtml(options.recipientEmail)}</div>`
+    ? `<div style="margin: 6px 0; font-size: 11px; color: #94a3b8; word-break: break-all;">Sent to ${escapeHtml(options.recipientEmail)}</div>`
     : '';
 
   const unsubscribeHtml = options?.showUnsubscribe
-    ? `<div style="margin: 10px 0 0 0; font-size: 11px; color: ${EMAIL_BRAND.colors.textMuted};">
+    ? `<div style="margin: 10px 0 0 0; font-size: 11px; color: #64748b;">
          To manage your notification preferences, visit your 
-         <a href="${sanitizeUrl(EMAIL_BRAND.portalUrl + '/settings')}" style="color: ${EMAIL_BRAND.colors.primaryLight}; text-decoration: underline;">Profile Settings</a>.
+         <a href="${sanitizeUrl(EMAIL_BRAND.portalUrl + '/settings')}" style="color: #059669; text-decoration: underline;">Profile Settings</a>.
        </div>`
     : '';
 
   return `
     <tr>
-      <td class="footer-cell" style="padding: 24px 28px; background-color: #0b1120; border-top: 1px solid ${EMAIL_BRAND.colors.border}; font-size: 12px; color: ${EMAIL_BRAND.colors.textMuted}; line-height: 1.5; text-align: center;">
+      <td class="footer-cell" style="padding: 28px 32px 24px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; line-height: 1.55; text-align: center;">
         
         <!-- 1. Club Name -->
-        <div style="font-size: 13px; font-weight: 700; color: #cbd5e1; margin-bottom: 3px; word-break: break-word;">
+        <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 2px; word-break: break-word;">
           ${escapeHtml(EMAIL_BRAND.name)}
         </div>
         
         <!-- 2. University Affiliation -->
-        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 8px; word-break: break-word;">
+        <div style="font-size: 12px; font-weight: 500; color: #475569; margin-bottom: 8px; word-break: break-word;">
           ${escapeHtml(EMAIL_BRAND.university)}
         </div>
 
-        <!-- 3. Official Club Communication Label (Compact, Mobile-Optimized) -->
-        <div style="display: inline-block; font-size: 11px; font-weight: 600; color: ${EMAIL_BRAND.colors.primaryLight}; letter-spacing: 0.04em; margin-bottom: 8px;">
+        <!-- 3. Official Club Communication Label -->
+        <div style="display: inline-block; font-size: 10px; font-weight: 700; color: #047857; background-color: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 10px; border-radius: 9999px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 10px;">
           ${escapeHtml(EMAIL_BRAND.officialCommLabel || 'Official club communication')}
         </div>
 
         <!-- 4. Contact & Campus Address -->
-        <div style="font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 6px; word-break: break-word;">
+        <div style="font-size: 11px; color: #64748b; line-height: 1.45; margin-bottom: 6px; word-break: break-word;">
           ${escapeHtml(EMAIL_BRAND.address)}
         </div>
 
         <!-- 5. Reply-To Support & Contact Notice -->
-        <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 6px; word-break: break-word;">
-          Questions or inquiries? Reply directly to this email or reach us at <a href="mailto:${escapeHtml(EMAIL_BRAND.supportEmail)}" style="color: ${EMAIL_BRAND.colors.primaryLight}; text-decoration: underline;">${escapeHtml(EMAIL_BRAND.supportEmail)}</a>.
+        <div style="font-size: 11px; color: #475569; line-height: 1.45; margin-bottom: 8px; word-break: break-word;">
+          Questions or inquiries? Reply directly to this email or reach us at <a href="mailto:${escapeHtml(EMAIL_BRAND.supportEmail)}" style="color: #059669; font-weight: 600; text-decoration: underline;">${escapeHtml(EMAIL_BRAND.supportEmail)}</a>
+        </div>
+
+        <!-- 6. Official Domain Link -->
+        <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">
+          Official Portal: <a href="https://invesmentclub.top" target="_blank" style="color: #0284c7; font-weight: 600; text-decoration: none;">invesmentclub.top</a>
         </div>
 
         ${recipientNote}
         ${unsubscribeHtml}
 
-        <!-- 6. Copyright -->
-        <div style="margin-top: 10px; font-size: 11px; color: #475569;">
-          &copy; ${currentYear} ${escapeHtml(EMAIL_BRAND.name)}. All rights reserved.
+        <!-- 7. Copyright -->
+        <div style="margin-top: 12px; font-size: 11px; color: #94a3b8;">
+          &copy; ${currentYear} ${escapeHtml(EMAIL_BRAND.name)} • ${escapeHtml(EMAIL_BRAND.university)}. All rights reserved.
         </div>
       </td>
     </tr>
@@ -132,7 +139,7 @@ export function renderFooter(options?: { recipientEmail?: string; showUnsubscrib
  */
 export function renderGreeting(name: string): string {
   return `
-    <p style="margin: 0 0 16px 0; font-size: 15px; color: ${EMAIL_BRAND.colors.textPrimary}; font-weight: 500; word-break: break-word;">
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #0f172a; font-weight: 600; word-break: break-word;">
       Hello <strong>${escapeHtml(name)}</strong>,
     </p>
   `;
@@ -143,28 +150,28 @@ export function renderGreeting(name: string): string {
  */
 export function renderParagraph(text: string): string {
   return `
-    <p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.6; color: ${EMAIL_BRAND.colors.textSecondary}; word-break: break-word;">
+    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.65; color: #334155; word-break: break-word;">
       ${text}
     </p>
   `;
 }
 
 /**
- * 5. Information Card Component (Responsive, Fixed-layout, No Overflow)
+ * 5. Information Card Component (Responsive, Clean Light Table, No Overflow)
  */
 export function renderInfoCard(options: { title?: string; items: InfoCardItem[] }): string {
   const rows = options.items.map((item, index) => {
     const isLast = index === options.items.length - 1;
-    const borderBottom = isLast ? '' : `border-bottom: 1px solid ${EMAIL_BRAND.colors.border};`;
-    const valueColor = item.highlight ? EMAIL_BRAND.colors.primaryLight : '#ffffff';
-    const valueWeight = item.highlight ? '700' : '500';
+    const borderBottom = isLast ? '' : `border-bottom: 1px solid #e2e8f0;`;
+    const valueColor = item.highlight ? '#059669' : '#0f172a';
+    const valueWeight = item.highlight ? '700' : '600';
 
     return `
       <tr>
-        <td style="padding: 10px 14px; ${borderBottom} color: ${EMAIL_BRAND.colors.textSecondary}; font-size: 13px; width: 38%; vertical-align: top; word-break: break-word;">
+        <td style="padding: 11px 16px; ${borderBottom} color: #64748b; font-size: 13px; font-weight: 500; width: 40%; vertical-align: top; word-break: break-word;">
           ${escapeHtml(item.label)}
         </td>
-        <td style="padding: 10px 14px; ${borderBottom} color: ${valueColor}; font-weight: ${valueWeight}; font-size: 13px; width: 62%; vertical-align: top; word-break: break-word;">
+        <td style="padding: 11px 16px; ${borderBottom} color: ${valueColor}; font-weight: ${valueWeight}; font-size: 13px; width: 60%; vertical-align: top; word-break: break-word;">
           ${escapeHtml(item.value)}
         </td>
       </tr>
@@ -172,13 +179,13 @@ export function renderInfoCard(options: { title?: string; items: InfoCardItem[] 
   }).join('');
 
   const titleHtml = options.title
-    ? `<div style="padding: 10px 14px; background-color: #172338; border-bottom: 1px solid ${EMAIL_BRAND.colors.border}; font-size: 12px; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word;">
+    ? `<div style="padding: 11px 16px; background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word;">
          ${escapeHtml(options.title)}
        </div>`
     : '';
 
   return `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 18px 0; background-color: ${EMAIL_BRAND.colors.surface}; border-radius: 8px; overflow: hidden; border: 1px solid ${EMAIL_BRAND.colors.border}; table-layout: fixed; width: 100%;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 20px 0; background-color: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; table-layout: fixed; width: 100%;">
       ${titleHtml ? `<tr><td colspan="2">${titleHtml}</td></tr>` : ''}
       ${rows}
     </table>
@@ -186,7 +193,7 @@ export function renderInfoCard(options: { title?: string; items: InfoCardItem[] 
 }
 
 /**
- * 6. Financial Summary Card Component (Responsive, Scaled Typography)
+ * 6. Financial Summary Card Component (Responsive, Light Card, Scaled Typography)
  */
 export function renderFinancialCard(options: {
   title: string;
@@ -207,72 +214,72 @@ export function renderFinancialCard(options: {
     : '';
 
   return `
-    <div style="margin: 18px 0; padding: 18px 14px; background: linear-gradient(180deg, #132238 0%, #0f172a 100%); border-radius: 10px; border: 1px solid #1e3a5f; text-align: center; box-sizing: border-box; max-width: 100%;">
-      <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: ${EMAIL_BRAND.colors.textSecondary}; margin-bottom: 6px; word-break: break-word;">
+    <div style="margin: 22px 0; padding: 22px 18px; background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; border-top: 3px solid #059669; text-align: center; box-sizing: border-box; max-width: 100%;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 8px; word-break: break-word;">
         ${escapeHtml(options.title)}
       </div>
-      <div style="font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em; margin-bottom: 4px; word-break: break-word;">
-        ${escapeHtml(formattedAmount)} <span style="font-size: 14px; font-weight: 500; color: ${EMAIL_BRAND.colors.primaryLight};">${escapeHtml(currency)}</span>
+      <div style="font-size: 30px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; margin-bottom: 4px; line-height: 1.15; word-break: break-word;">
+        ${escapeHtml(formattedAmount)} <span style="font-size: 14px; font-weight: 600; color: #059669;">${escapeHtml(currency)}</span>
       </div>
-      ${statusBadge ? `<div style="margin-top: 10px;">${statusBadge}</div>` : ''}
+      ${statusBadge ? `<div style="margin-top: 12px;">${statusBadge}</div>` : ''}
     </div>
     ${detailsTable}
   `;
 }
 
 /**
- * 7. Status Badge Component
+ * 7. Status Badge Component (Clean Light Pills)
  */
 export function renderStatusBadge(status: string, variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' = 'neutral'): string {
-  let color = '#94a3b8';
-  let bg = 'rgba(148, 163, 184, 0.12)';
-  let border = 'rgba(148, 163, 184, 0.3)';
+  let color = '#334155';
+  let bg = '#f1f5f9';
+  let border = '#cbd5e1';
 
   switch (variant) {
     case 'success':
-      color = '#34d399';
-      bg = 'rgba(16, 185, 129, 0.12)';
-      border = 'rgba(16, 185, 129, 0.35)';
+      color = '#15803d';
+      bg = '#dcfce7';
+      border = '#bbf7d0';
       break;
     case 'warning':
-      color = '#fbbf24';
-      bg = 'rgba(245, 158, 11, 0.12)';
-      border = 'rgba(245, 158, 11, 0.35)';
+      color = '#b45309';
+      bg = '#fef3c7';
+      border = '#fde68a';
       break;
     case 'danger':
-      color = '#f87171';
-      bg = 'rgba(239, 68, 68, 0.12)';
-      border = 'rgba(239, 68, 68, 0.35)';
+      color = '#b91c1c';
+      bg = '#fee2e2';
+      border = '#fecaca';
       break;
     case 'info':
-      color = '#38bdf8';
-      bg = 'rgba(56, 189, 248, 0.12)';
-      border = 'rgba(56, 189, 248, 0.35)';
+      color = '#0369a1';
+      bg = '#e0f2fe';
+      border = '#bae6fd';
       break;
   }
 
   return `
-    <span style="display: inline-block; padding: 4px 14px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: ${color}; background-color: ${bg}; border: 1px solid ${border}; text-transform: uppercase; letter-spacing: 0.04em; word-break: break-word;">
+    <span style="display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; color: ${color}; background-color: ${bg}; border: 1px solid ${border}; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word;">
       ${escapeHtml(status)}
     </span>
   `;
 }
 
 /**
- * 8. Primary CTA Button Component (Tap-friendly 44px, Responsive width)
+ * 8. Primary CTA Button Component (Tap-friendly 44px, DIU Emerald Green, Outlook MSO VML)
  */
 export function renderPrimaryButton(label: string, url: string): string {
   const safeUrl = sanitizeUrl(url);
   return `
-    <div style="margin: 26px 0 18px 0; text-align: center;">
+    <div style="margin: 28px 0 20px 0; text-align: center;">
       <!--[if mso]>
-      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:44px;v-text-anchor:middle;width:240px;" arcsize="16%" stroke="f" fillcolor="${EMAIL_BRAND.colors.primary}">
+      <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${safeUrl}" style="height:46px;v-text-anchor:middle;width:240px;" arcsize="18%" stroke="f" fillcolor="#059669">
         <w:anchorlock/>
-        <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:600;">${escapeHtml(label)}</center>
+        <center style="color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:700;">${escapeHtml(label)}</center>
       </v:roundrect>
       <![endif]-->
       <!--[if !mso]><!-->
-      <a href="${safeUrl}" target="_blank" class="email-btn" style="display: inline-block; max-width: 100%; box-sizing: border-box; word-break: break-word; background-color: ${EMAIL_BRAND.colors.primary}; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; padding: 12px 24px; min-height: 44px; line-height: 20px; border-radius: 7px; box-shadow: 0 2px 5px rgba(5, 150, 105, 0.25);">
+      <a href="${safeUrl}" target="_blank" class="email-btn" style="display: inline-block; max-width: 100%; box-sizing: border-box; word-break: break-word; background-color: #059669; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; padding: 13px 28px; min-height: 44px; line-height: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);">
         ${escapeHtml(label)}
       </a>
       <!--<![endif]-->
@@ -286,8 +293,8 @@ export function renderPrimaryButton(label: string, url: string): string {
 export function renderSecondaryLink(label: string, url: string): string {
   const safeUrl = sanitizeUrl(url);
   return `
-    <div style="margin: 12px 0; text-align: center;">
-      <a href="${safeUrl}" target="_blank" style="font-size: 13px; color: ${EMAIL_BRAND.colors.primaryLight}; text-decoration: underline; font-weight: 500; word-break: break-word;">
+    <div style="margin: 14px 0; text-align: center;">
+      <a href="${safeUrl}" target="_blank" style="font-size: 13px; color: #059669; text-decoration: underline; font-weight: 600; word-break: break-word;">
         ${escapeHtml(label)} &rarr;
       </a>
     </div>
@@ -299,38 +306,38 @@ export function renderSecondaryLink(label: string, url: string): string {
  */
 export function renderDivider(): string {
   return `
-    <hr style="border: none; border-top: 1px solid ${EMAIL_BRAND.colors.border}; margin: 22px 0;" />
+    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
   `;
 }
 
 /**
- * 11. Alert / Warning Box Component
+ * 11. Alert / Warning Box Component (Clean Soft Light Callouts)
  */
 export function renderAlertBox(message: string, type: 'info' | 'warning' | 'danger' | 'success' = 'info'): string {
-  let borderColor = '#38bdf8';
-  let bgColor = 'rgba(56, 189, 248, 0.08)';
-  let textColor = '#bae6fd';
+  let borderColor = '#0284c7';
+  let bgColor = '#f0f9ff';
+  let textColor = '#0369a1';
   let icon = 'ℹ️';
 
   if (type === 'warning') {
-    borderColor = '#fbbf24';
-    bgColor = 'rgba(245, 158, 11, 0.08)';
-    textColor = '#fde68a';
+    borderColor = '#d97706';
+    bgColor = '#fffbeb';
+    textColor = '#92400e';
     icon = '⚠️';
   } else if (type === 'danger') {
-    borderColor = '#f87171';
-    bgColor = 'rgba(239, 68, 68, 0.08)';
-    textColor = '#fecaca';
+    borderColor = '#dc2626';
+    bgColor = '#fef2f2';
+    textColor = '#991b1b';
     icon = '🚨';
   } else if (type === 'success') {
-    borderColor = '#34d399';
-    bgColor = 'rgba(16, 185, 129, 0.08)';
-    textColor = '#a7f3d0';
+    borderColor = '#059669';
+    bgColor = '#f0fdf4';
+    textColor = '#166534';
     icon = '✅';
   }
 
   return `
-    <div style="margin: 18px 0; padding: 14px 16px; border-radius: 7px; background-color: ${bgColor}; border-left: 4px solid ${borderColor}; font-size: 13px; line-height: 1.5; color: ${textColor}; box-sizing: border-box; max-width: 100%; word-break: break-word;">
+    <div style="margin: 20px 0; padding: 14px 16px; border-radius: 8px; background-color: ${bgColor}; border-left: 4px solid ${borderColor}; border-top: 1px solid ${borderColor}20; border-right: 1px solid ${borderColor}20; border-bottom: 1px solid ${borderColor}20; font-size: 13px; line-height: 1.55; color: ${textColor}; box-sizing: border-box; max-width: 100%; word-break: break-word;">
       <strong style="margin-right: 6px;">${icon}</strong> ${escapeHtml(message)}
     </div>
   `;
@@ -342,6 +349,7 @@ export function renderAlertBox(message: string, type: 'info' | 'warning' | 'dang
  */
 export interface BaseLayoutOptions {
   title: string;
+  headerSubtitle?: string;
   preheader?: string;
   content: string;
   actionButton?: { label: string; url: string };
@@ -351,7 +359,7 @@ export interface BaseLayoutOptions {
 
 export function renderBaseLayout(options: BaseLayoutOptions): string {
   const preheaderHtml = options.preheader
-    ? `<div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(options.preheader)}</div>`
+    ? `<div style="display:none;font-size:1px;color:#f1f5f9;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${escapeHtml(options.preheader)}</div>`
     : '';
 
   const actionButtonHtml = options.actionButton
@@ -394,29 +402,29 @@ export function renderBaseLayout(options: BaseLayoutOptions): string {
     @media only screen and (max-width: 620px) {
       .email-wrapper { width: 100% !important; padding: 12px 6px !important; }
       .email-container { width: 100% !important; max-width: 100% !important; border-radius: 8px !important; }
-      .content-cell { padding: 22px 16px !important; font-size: 14px !important; }
-      .header-cell { padding: 20px 16px !important; }
-      .footer-cell { padding: 20px 14px !important; }
+      .content-cell { padding: 24px 18px !important; font-size: 14px !important; }
+      .header-cell { padding: 22px 18px !important; }
+      .footer-cell { padding: 22px 16px !important; }
       .mobile-stack { display: block !important; width: 100% !important; }
       .mobile-full-width { width: 100% !important; }
-      .email-btn { width: 100% !important; max-width: 280px !important; display: block !important; margin: 0 auto !important; padding: 12px 16px !important; }
+      .email-btn { width: 100% !important; max-width: 280px !important; display: block !important; margin: 0 auto !important; padding: 13px 18px !important; }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; width: 100% !important; background-color: ${EMAIL_BRAND.colors.background}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${EMAIL_BRAND.colors.textPrimary}; -webkit-font-smoothing: antialiased;">
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; -webkit-font-smoothing: antialiased;">
   ${preheaderHtml}
-  <table class="email-wrapper" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: ${EMAIL_BRAND.colors.background}; padding: 28px 0; width: 100%;">
+  <table class="email-wrapper" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 32px 0; width: 100%;">
     <tr>
-      <td align="center" style="padding: 0 8px;">
+      <td align="center" style="padding: 0 10px;">
         
-        <!-- Main Card Container (Responsive & Fixed-Layout Safe) -->
-        <table class="email-container" role="presentation" width="580" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 580px; background-color: ${EMAIL_BRAND.colors.cardBackground}; border: 1px solid ${EMAIL_BRAND.colors.border}; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45); table-layout: fixed;">
+        <!-- Main Card Container (Institutional White Surface) -->
+        <table class="email-container" role="presentation" width="580" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 580px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06); table-layout: fixed;">
           
-          ${renderHeader()}
+          ${renderHeader({ subtitle: options.headerSubtitle })}
 
           <!-- Main Content Cell -->
           <tr>
-            <td class="content-cell" style="padding: 30px 32px; font-size: 15px; line-height: 1.6; color: ${EMAIL_BRAND.colors.textSecondary}; word-break: break-word;">
+            <td class="content-cell" style="padding: 32px 36px; font-size: 15px; line-height: 1.65; color: #334155; word-break: break-word;">
               ${options.content}
               ${actionButtonHtml}
             </td>
