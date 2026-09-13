@@ -32,9 +32,10 @@ const templates = [
   {
     name: '01_member_welcome',
     rendered: renderMemberWelcomeEmail({
-      memberName: 'Tashfiq Ahmed',
-      memberId: 'MEM-2026-0042',
-      tier: 'Executive Member',
+      userName: 'Tashfiq Ahmed',
+      memberCode: 'MEM-2026-0042',
+      department: 'Computer Science and Engineering',
+      batch: '60th',
       recipientEmail: 'tashfiq@diu.edu.bd',
     }),
   },
@@ -42,7 +43,6 @@ const templates = [
     name: '02_user_welcome',
     rendered: renderUserWelcomeEmail({
       userName: 'Ibna Siam',
-      portalUrl: 'https://invesmentclub.top/dashboard',
       recipientEmail: 'siam@diu.edu.bd',
     }),
   },
